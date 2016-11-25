@@ -14,7 +14,7 @@
 	    android:layout_marginRight="20dp"
 	    android:layout_marginTop="20dp"
 	    android:smoothScrollbar="true" />
-		
+
 	<Button
 	    android:id="@+id/button_scan"
 	    android:layout_width="wrap_content"
@@ -23,5 +23,5 @@
 	    android:layout_alignParentLeft="true"
 	    android:layout_alignParentRight="true"
 	    android:text="SCAN FOR DEVICES" />
-		
+
 </RelativeLayout>
