@@ -2,6 +2,9 @@ package app.sergeynik.debug;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Spinner;
 
 import com.ghgande.j2mod.modbus.msg.WriteCoilRequest;
 import com.ghgande.j2mod.modbus.msg.WriteMultipleRegistersRequest;
@@ -20,10 +23,20 @@ public class CreateReqActivity extends AppCompatActivity {
     private WriteSingleRegisterRequest mWrSingleRegReq;
     private WriteMultipleRegistersRequest mWrMultRegsReq;
 
+    private EditText edSlaveID, edAddress, edValue;
+    private Spinner spFunction;
+    private Button btnCreate;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_req);
+
+        edSlaveID = (EditText) findViewById(R.id.edit_debug_slave_id);
+        edAddress = (EditText) findViewById(R.id.edit_debug_address);
+        edValue = (EditText) findViewById(R.id.edit_debug_value);
+        spFunction = (Spinner) findViewById(R.id.spinner_debug_function);
+        btnCreate = (Button) findViewById(R.id.btn_debug_create_request);
 
         mByteQueue= new ByteQueue();
     }

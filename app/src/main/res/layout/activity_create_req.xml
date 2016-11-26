@@ -1,10 +1,132 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_create_req"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="app.sergeynik.debug.CreateReqActivity">
 
+    <Spinner
+        android:layout_width="344dp"
+        android:layout_height="48dp"
+        android:id="@+id/spinner_debug_function"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/txt_debug_function"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"/>
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="numberSigned"
+        android:ems="10"
+        android:id="@+id/edit_debug_address"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/txt_debug_address"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"/>
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="numberSigned"
+        android:ems="10"
+        android:id="@+id/edit_debug_value"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/txt_debug_value"
+        />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="numberSigned"
+        android:ems="10"
+        android:id="@+id/edit_debug_slave_id"
+        app:layout_constraintTop_toBottomOf="@+id/txt_debug_slave_id"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txt_debug_slave_id"
+        android:text="SlaveID"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/txt_debug_create_request"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"/>
+
+    <TextView
+        android:text="Function"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txt_debug_function"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@+id/edit_debug_slave_id"
+        />
+
+    <TextView
+        android:text="Address"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txt_debug_address"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@+id/spinner_debug_function"
+        />
+
+    <TextView
+        android:text="Value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txt_debug_value"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@+id/edit_debug_address"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        />
+
+    <Button
+        android:text="Create"
+        android:layout_width="135dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/btn_debug_create_request"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="16dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginRight="16dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/edit_debug_value"
+        app:layout_constraintVertical_bias="0.25"/>
+
+    <TextView
+        android:text="Create request"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txt_debug_create_request"
+        android:textSize="18sp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginStart="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginRight="16dp"/>
 </android.support.constraint.ConstraintLayout>
