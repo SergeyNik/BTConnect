@@ -390,20 +390,19 @@ public class BluetoothService {
 
                         case 1: // Other devices script
                             byteQueue.push(data);
-                            arr_byte.add(data);
-                            buffer = new byte[arr_byte.size()];
-                            for (int i = 0; i < arr_byte.size(); i++) {
-                                buffer[i] = arr_byte.get(i).byteValue();
-                            }
-                            // Send the obtained bytes to the UI Activity
-                            mHandler.obtainMessage(BluetoothState.MESSAGE_READ
-                                    , buffer.length, -1, buffer).sendToTarget();
-                            arr_byte = new ArrayList<Integer>();
-                            //Log.d("TAG", "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+
                             if (mmInStream.available() == 0){
                                 mControl.putResponse(byteQueue.peekAll());
-                                Log.d("TAG", "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-                                Log.d("TAG", String.valueOf(byteQueue.peekAll().toString()));
+
+                                buffer = new byte[byteQueue.size()];
+                                for (int i = 0; i < buffer.length; i++) {
+                                    buffer[i] = byteQueue.peek(i);
+                                }
+
+                                // Send the obtained bytes to the UI Activity
+                                mHandler.obtainMessage(BluetoothState.MESSAGE_READ
+                                        , buffer.length, -1, buffer).sendToTarget();
+                                arr_byte = new ArrayList<Integer>();
                             }
                             break;
                     }
