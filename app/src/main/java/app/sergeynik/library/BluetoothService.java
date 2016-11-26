@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.UUID;
 
 import app.sergeynik.btconnect.TransferControl;
@@ -396,13 +397,14 @@ public class BluetoothService {
 
                                 buffer = new byte[byteQueue.size()];
                                 for (int i = 0; i < buffer.length; i++) {
-                                    buffer[i] = byteQueue.peek(i);
+                                    buffer[i] = byteQueue.pop();
                                 }
 
                                 // Send the obtained bytes to the UI Activity
                                 mHandler.obtainMessage(BluetoothState.MESSAGE_READ
                                         , buffer.length, -1, buffer).sendToTarget();
                                 arr_byte = new ArrayList<Integer>();
+                                Log.d("WATCHI", Arrays.toString(buffer));
                             }
                             break;
                     }
