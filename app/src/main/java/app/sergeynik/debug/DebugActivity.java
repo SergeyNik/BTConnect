@@ -10,18 +10,27 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.serotonin.util.queue.ByteQueue;
+
 import app.sergeynik.btconnect.R;
 
 public class DebugActivity extends AppCompatActivity {
 
+    private ByteQueue mByteQueue;
     private boolean isCreateReq = false;
-    private TextView response;
-    private EditText request;
+    private TextView txtResponse;
+    private EditText edRequest;
     private Button btnCreateReq;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (data == null) {
+            return;
+        }
+        byte[] act_result = data.getByteArrayExtra("REQUEST");
+        mByteQueue.push(act_result);
+        edRequest.setText(mByteQueue.toString());
     }
 
     @Override
@@ -29,17 +38,19 @@ public class DebugActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_debug);
 
-        response = (TextView) findViewById(R.id.txt_read_response);
-        request = (EditText) findViewById(R.id.edit_current_request);
+        txtResponse = (TextView) findViewById(R.id.txt_read_response);
+        edRequest = (EditText) findViewById(R.id.edit_current_request);
         btnCreateReq = (Button) findViewById(R.id.btn_send_request);
 
-        if (request.getText().toString().equals("Request") ||
-                request.getText().toString().equals("")){
+        mByteQueue = new ByteQueue();
+
+        if (edRequest.getText().toString().equals("Request") ||
+                edRequest.getText().toString().equals("")){
             btnCreateReq.setText("Create");
             isCreateReq = true;
         }
 
-        request.addTextChangedListener(new TextWatcher() {
+        edRequest.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
@@ -47,8 +58,8 @@ public class DebugActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (request.getText().toString().equals("Request") ||
-                        request.getText().toString().equals("")){
+                if (edRequest.getText().toString().equals("Request") ||
+                        edRequest.getText().toString().equals("")){
                     btnCreateReq.setText("Create");
                     isCreateReq = true;
                 } else {
@@ -70,6 +81,9 @@ public class DebugActivity extends AppCompatActivity {
                 if(isCreateReq){
                     intent = new Intent(DebugActivity.this, CreateReqActivity.class);
                     startActivityForResult(intent, 1);
+                } else {
+                    // send request
+
                 }
             }
         });

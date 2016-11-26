@@ -8,4 +8,10 @@
     <string name="str_nav_review">Review</string>
     <string name="str_nav_debug">Debug</string>
     <string name="str_group_nav_communicate">Communicate</string>
+
+
+    <string-array name="function_list">
+        <item>Coil</item>
+        <item>Register</item>
+    </string-array>
 </resources>
