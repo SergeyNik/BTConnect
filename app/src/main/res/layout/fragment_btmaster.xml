@@ -135,5 +135,15 @@
         app:layout_constraintRight_toRightOf="parent"
         android:layout_marginRight="16dp"/>
 
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txt_read_bytes"
+        app:layout_constraintTop_toBottomOf="@+id/txt_status"
+        android:layout_marginEnd="100dp"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginRight="100dp"/>
+
 
 </android.support.constraint.ConstraintLayout>

@@ -27,26 +27,30 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import com.serotonin.util.queue.ByteQueue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import app.sergeynik.btconnect.TransferControl;
+
 @SuppressLint("NewApi")
 public class BluetoothService {
     // Debugging
     private static final String TAG = "Bluetooth Service";
-    
+
     // Name for the SDP record when creating server socket
     private static final String NAME_SECURE = "Bluetooth Secure";
-    
+
     // Unique UUID for this application
     private static final UUID UUID_ANDROID_DEVICE =
             UUID.fromString("fa87c0d0-afac-11de-8a39-0800200c9a66");
     private static final UUID UUID_OTHER_DEVICE =
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    
+
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
@@ -55,7 +59,9 @@ public class BluetoothService {
     private ConnectedThread mConnectedThread;
     private int mState;
     private boolean isAndroid = BluetoothState.DEVICE_ANDROID;
-        
+
+    private TransferControl mControl;
+
     // Constructor. Prepares a new BluetoothChat session
     // context : The UI Activity Context
     // handler : A Handler to send messages back to the UI Activity
@@ -63,15 +69,16 @@ public class BluetoothService {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = BluetoothState.STATE_NONE;
         mHandler = handler;
+        mControl = TransferControl.getInstance();
     }
 
-    
+
     // Set the current state of the chat connection
     // state : An integer defining the current connection state
     private synchronized void setState(int state) {
         Log.d(TAG, "setState() " + mState + " -> " + state);
         mState = state;
-        
+
         // Give the new state to the Handler so the UI Activity can update
         mHandler.obtainMessage(BluetoothState.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
@@ -88,9 +95,9 @@ public class BluetoothService {
         if (mConnectThread != null) {mConnectThread.cancel(); mConnectThread = null;}
         // Cancel any thread currently running a connection
         if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
-        
+
         setState(BluetoothState.STATE_LISTEN);
-        
+
         // Start the thread to listen on a BluetoothServerSocket
         if (mSecureAcceptThread == null) {
             mSecureAcceptThread = new AcceptThread(isAndroid);
@@ -237,19 +244,19 @@ public class BluetoothService {
                 if (socket != null) {
                     synchronized (BluetoothService.this) {
                         switch (mState) {
-                        case BluetoothState.STATE_LISTEN:
-                        case BluetoothState.STATE_CONNECTING:
-                            // Situation normal. Start the connected thread.
-                            connected(socket, socket.getRemoteDevice(),
-                                    mSocketType);
-                            break;
-                        case BluetoothState.STATE_NONE:
-                        case BluetoothState.STATE_CONNECTED:
-                            // Either not ready or already connected. Terminate new socket.
-                            try {
-                                socket.close();
-                            } catch (IOException e) { }
-                            break;
+                            case BluetoothState.STATE_LISTEN:
+                            case BluetoothState.STATE_CONNECTING:
+                                // Situation normal. Start the connected thread.
+                                connected(socket, socket.getRemoteDevice(),
+                                        mSocketType);
+                                break;
+                            case BluetoothState.STATE_NONE:
+                            case BluetoothState.STATE_CONNECTED:
+                                // Either not ready or already connected. Terminate new socket.
+                                try {
+                                    socket.close();
+                                } catch (IOException e) { }
+                                break;
                         }
                     }
                 }
@@ -349,27 +356,58 @@ public class BluetoothService {
         }
 
         public void run() {
+
             byte[] buffer;
             ArrayList<Integer> arr_byte = new ArrayList<Integer>();
-
+            ByteQueue byteQueue = new ByteQueue();
             // Keep listening to the InputStream while connected
-            while (true) {
-                try {
-                    int data = mmInStream.read();
-                    if(data == 0x0A) {
 
-                    } else if(data == 0x11) {
-                        buffer = new byte[arr_byte.size()];
-                        for(int i = 0 ; i < arr_byte.size() ; i++) {
-                            buffer[i] = arr_byte.get(i).byteValue();
-                        }
-                        // Send the obtained bytes to the UI Activity
-                        mHandler.obtainMessage(BluetoothState.MESSAGE_READ
-                                , buffer.length, -1, buffer).sendToTarget();
-                        arr_byte = new ArrayList<Integer>();
-                    } else {
-                        arr_byte.add(data);
+            while (true) {  //Go in cycle
+
+                try {
+                    // Catch data from stream
+                    int data = mmInStream.read();
+                    Log.d("GERODOT", String.valueOf(mmInStream.available()));
+
+                    switch (mControl.getTransferType()) {
+                        case 0: // Android script
+                            if (data == 0x0A) {
+
+                            } else if (data == 0x0D) {
+                                buffer = new byte[arr_byte.size()];
+                                for (int i = 0; i < arr_byte.size(); i++) {
+                                    buffer[i] = arr_byte.get(i).byteValue();
+                                }
+                                // Send the obtained bytes to the UI Activity
+                                mHandler.obtainMessage(BluetoothState.MESSAGE_READ
+                                        , buffer.length, -1, buffer).sendToTarget();
+                                arr_byte = new ArrayList<Integer>();
+
+                            } else {
+                                arr_byte.add(data);
+                            }
+                            break;
+
+                        case 1: // Other devices script
+                            byteQueue.push(data);
+                            arr_byte.add(data);
+                            buffer = new byte[arr_byte.size()];
+                            for (int i = 0; i < arr_byte.size(); i++) {
+                                buffer[i] = arr_byte.get(i).byteValue();
+                            }
+                            // Send the obtained bytes to the UI Activity
+                            mHandler.obtainMessage(BluetoothState.MESSAGE_READ
+                                    , buffer.length, -1, buffer).sendToTarget();
+                            arr_byte = new ArrayList<Integer>();
+                            //Log.d("TAG", "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+                            if (mmInStream.available() == 0){
+                                mControl.putResponse(byteQueue.peekAll());
+                                Log.d("TAG", "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+                                Log.d("TAG", String.valueOf(byteQueue.peekAll().toString()));
+                            }
+                            break;
                     }
+
                 } catch (IOException e) {
                     connectionLost();
                     // Start the service over to restart listening mode

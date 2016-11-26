@@ -34,6 +34,7 @@ public class BTMasterFragment extends Fragment {
 
     private AppCompatActivity app;
     private BluetoothSPP bt;
+    private TransferControl control;
 
     private WriteCoilRequest mCoilRequest;
     private WriteSingleRegisterRequest mRegRequest;
@@ -67,6 +68,7 @@ public class BTMasterFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_btmaster, container, false);
         Log.d("request", "---------------------------------------------------------------");
         textStatus = (TextView)view.findViewById(R.id.txt_status);
+        textRead = (TextView) view.findViewById(R.id.txt_read_bytes);
         btnSend = (Button)view.findViewById(R.id.btnSend);
         btnSendCoil = (Button)view.findViewById(R.id.btn_send_coil);
         editCoilAddres = (EditText) view.findViewById(R.id.edit_coil_address);
@@ -74,21 +76,22 @@ public class BTMasterFragment extends Fragment {
         editRgAddress = (EditText) view.findViewById(R.id.edit_register_address);
         editRegValue = (EditText) view.findViewById(R.id.edit_register_value);
 
-        bt = new BluetoothSPP(getActivity());
+        control = TransferControl.getInstance();    // Управление пакетами modbus
+        bt = new BluetoothSPP(app);
         //createRequest();
 
         // Support bluetooth on device?
         if(!bt.isBluetoothAvailable()){
-            Toast.makeText(getActivity()
+            Toast.makeText(app
                     , "Bluetooth is not available"
                     , Toast.LENGTH_SHORT).show();
-            getActivity().finish();
+            app.finish();
         }
 
         // Message from friend
         bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             public void onDataReceived(byte[] data, String message) {
-                textRead.append(message + "\n");
+                textRead.append(data[0] + "\n");
             }
         });
 
@@ -170,7 +173,7 @@ public class BTMasterFragment extends Fragment {
                 Toast.makeText(getContext()
                         , "Bluetooth was not enabled."
                         , Toast.LENGTH_SHORT).show();
-                getActivity().finish();
+                app.finish();
             }
         }
     }
@@ -220,6 +223,11 @@ public class BTMasterFragment extends Fragment {
         requestInBytes.push(crc[0]);
         requestInBytes.push(crc[1]);
 
+        byte[] inBytes = new byte[requestInBytes.size()];
+        for (int k = 0; k < requestInBytes.size(); k++) {
+            inBytes[k] = requestInBytes.peek(k);
+        }
+        control.putRequest(inBytes);
 
         Log.d("request", requestInBytes.toString());
     }
