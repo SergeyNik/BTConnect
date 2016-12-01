@@ -367,7 +367,6 @@ public class BluetoothService {
                 try {
                     // Catch data from stream
                     int data = mmInStream.read();
-                    Log.d("GERODOT", String.valueOf(mmInStream.available()));
 
                     switch (mControl.getTransferType()) {
                         case 0: // Android script

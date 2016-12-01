@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="req_params">
+        <item>SlaveID</item>
+        <item>Function</item>
+        <item>Address</item>
+        <item>Value</item>
+    </string-array>
+</resources>

@@ -21,15 +21,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-
         <activity android:name="app.sergeynik.library.DeviceList"/>
-
         <activity android:name="app.sergeynik.debug.DebugActivity">
         </activity>
-
-        <activity android:name="app.sergeynik.debug.CreateReqActivity"
-                  android:parentActivityName="app.sergeynik.debug.DebugActivity"
-            >
+        <activity
+            android:name="app.sergeynik.debug.CreateReqActivity"
+            android:parentActivityName="app.sergeynik.debug.DebugActivity">
+        </activity>
+        <activity android:name="app.sergeynik.debug.NumberPadActivity">
+        </activity>
+        <activity android:name="app.sergeynik.debug.DebugActivity2">
         </activity>
     </application>
 

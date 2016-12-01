@@ -78,6 +78,8 @@ public class BTMasterFragment extends Fragment {
 
         control = TransferControl.getInstance();    // Управление пакетами modbus
         bt = new BluetoothSPP(app);
+        control.setSpp(bt);
+
         //createRequest();
 
         // Support bluetooth on device?
@@ -89,11 +91,11 @@ public class BTMasterFragment extends Fragment {
         }
 
         // Message from friend
-        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
-            public void onDataReceived(byte[] data, String message) {
-                textRead.append(data[0] + "\n");
-            }
-        });
+//        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
+//            public void onDataReceived(byte[] data, String message) {
+//                textRead.append(data[0] + "\n");
+//            }
+//        });
 
         bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
             public void onDeviceDisconnected() {
