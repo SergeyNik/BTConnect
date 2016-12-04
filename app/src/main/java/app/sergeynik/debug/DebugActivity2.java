@@ -1,5 +1,6 @@
 package app.sergeynik.debug;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -52,8 +53,12 @@ public class DebugActivity2 extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
+            Intent intent;
             Snackbar.make(v, "Replace with your own action", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
+
+            intent = new Intent(getApplicationContext(), NumberPadActivity.class);
+            startActivity(intent);
         }
     }
 
