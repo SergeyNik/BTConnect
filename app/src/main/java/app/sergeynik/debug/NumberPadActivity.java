@@ -1,5 +1,6 @@
 package app.sergeynik.debug;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -12,12 +13,18 @@ import java.util.regex.Pattern;
 import app.sergeynik.btconnect.R;
 
 public class NumberPadActivity extends AppCompatActivity {
+    public static final String EXTRA_OUT_VALUE = "app.sergeynik.debug.menu_value";
+    private static final int SLAVE_ID = 0;
+    private static final int FUNCTION = 1;
+    private static final int ADDRESS = 2;
+    private static final int VALUE = 3;
     Button btnOne, btnTwo, btnThree, btnFour, btnFive,
             btnSix, btnSeven, btnEight, btnNine, btnMinus, btnZero, btnDot, btnDelete, btnOk;
     TextView txtResult;
     private StringBuilder string;
     private Pattern pattern;
     private Matcher matcher;
+    private int typeOfMessPart;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -41,6 +48,10 @@ public class NumberPadActivity extends AppCompatActivity {
         btnDot = (Button) findViewById(R.id.btn_dot);
         btnDelete = (Button) findViewById(R.id.btn_delete);
         btnOk = (Button) findViewById(R.id.btn_ok);
+
+        // Get clicked position
+        final Intent intent = getIntent();
+        typeOfMessPart = intent.getIntExtra(DebugActivity2.EXTRA_POS_ID, 1);
 
         btnOne.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -155,6 +166,23 @@ public class NumberPadActivity extends AppCompatActivity {
         btnOk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Intent data = new Intent();
+                switch (typeOfMessPart){
+                    case SLAVE_ID:
+                        data.putExtra(EXTRA_OUT_VALUE, 255);
+                        break;
+                    case FUNCTION:
+                        data.putExtra(EXTRA_OUT_VALUE, 3);
+                        break;
+                    case ADDRESS:
+                        data.putExtra(EXTRA_OUT_VALUE, 1000);
+                        break;
+                    case VALUE:
+                        data.putExtra(EXTRA_OUT_VALUE, 513);
+                        break;
+                }
+                setResult(RESULT_OK, data);
+                finish();
 
 //                int d = Integer.parseInt(string.toString());
 //                txtResult.setText("");

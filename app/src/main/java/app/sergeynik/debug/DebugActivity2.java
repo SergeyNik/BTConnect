@@ -6,6 +6,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +22,18 @@ public class DebugActivity2 extends AppCompatActivity {
     private RecyclerView mRecycler;
     private RecyclerView.Adapter mAdapter;
     private  RecyclerView.LayoutManager mLayoutManager;
+    public static final String EXTRA_POS_ID =
+            "app.sergeynik.debug.menu_position";
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(data == null){
+            return;
+        }
+        int myValue = data.getIntExtra(NumberPadActivity.EXTRA_OUT_VALUE, 1);
+        Log.d("MESSAGA", String.valueOf(myValue));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,7 +71,8 @@ public class DebugActivity2 extends AppCompatActivity {
                     .setAction("Action", null).show();
 
             intent = new Intent(getApplicationContext(), NumberPadActivity.class);
-            startActivity(intent);
+            intent.putExtra(EXTRA_POS_ID, getAdapterPosition());
+            startActivityForResult(intent, 1);
         }
     }
 
