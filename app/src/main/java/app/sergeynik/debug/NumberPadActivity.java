@@ -167,18 +167,58 @@ public class NumberPadActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent data = new Intent();
+                int iResult;
                 switch (typeOfMessPart){
                     case SLAVE_ID:
-                        data.putExtra(EXTRA_OUT_VALUE, 255);
+                        // 0-255
+                        try {
+                            iResult = Integer.parseInt(string.toString());
+                            if(iResult > 255){
+                                iResult = 255;
+                            } else if(iResult < 0){
+                                iResult = 0;
+                            }
+                        } catch (NumberFormatException e){
+                            iResult = 0;
+                        }
+                        data.putExtra("slave_id", iResult);
                         break;
                     case FUNCTION:
-                        data.putExtra(EXTRA_OUT_VALUE, 3);
+                        // 0-15
+                        try {
+                            iResult = Integer.parseInt(string.toString());
+                            if(iResult > 15){
+                                iResult = 15;
+                            } else if(iResult < 0){
+                                iResult = 0;
+                            }
+                        } catch (NumberFormatException e){
+                            iResult = 0;
+                        }
+                        data.putExtra("function", iResult);
                         break;
                     case ADDRESS:
-                        data.putExtra(EXTRA_OUT_VALUE, 1000);
+                        // 1-49999
+                        try {
+                            iResult = Integer.parseInt(string.toString());
+                            if(iResult > 49999){
+                                iResult = 49999;
+                            } else if(iResult < 1){
+                                iResult = 1;
+                            }
+                        } catch (NumberFormatException e){
+                            iResult = 0;
+                        }
+                        data.putExtra("address", iResult);
                         break;
                     case VALUE:
-                        data.putExtra(EXTRA_OUT_VALUE, 513);
+                        try {
+                            iResult = Integer.parseInt(string.toString());
+                        } catch (NumberFormatException e){
+                            iResult = 0;
+                        }
+                        // выборка bool, int, double, float, uint16
+                        data.putExtra("value", iResult);
                         break;
                 }
                 setResult(RESULT_OK, data);

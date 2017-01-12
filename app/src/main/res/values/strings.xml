@@ -8,6 +8,7 @@
     <string name="str_nav_review">Review</string>
     <string name="str_nav_debug">Debug</string>
     <string name="str_group_nav_communicate">Communicate</string>
+    <string name="str_txt_request_constructor">Request constructor:</string>
 
 
     <string-array name="function_list">

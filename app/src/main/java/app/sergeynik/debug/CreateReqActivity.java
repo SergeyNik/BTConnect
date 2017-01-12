@@ -36,6 +36,7 @@ public class CreateReqActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_req);
 
+
         edSlaveID = (EditText) findViewById(R.id.edit_debug_slave_id);
         edAddress = (EditText) findViewById(R.id.edit_debug_address);
         edValue = (EditText) findViewById(R.id.edit_debug_value);

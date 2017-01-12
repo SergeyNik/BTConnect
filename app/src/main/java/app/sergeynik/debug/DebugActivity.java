@@ -5,11 +5,16 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.ghgande.j2mod.modbus.msg.WriteCoilRequest;
+import com.ghgande.j2mod.modbus.msg.WriteSingleRegisterRequest;
+import com.ghgande.j2mod.modbus.procimg.SimpleRegister;
+import com.ghgande.j2mod.modbus.util.ModbusUtil;
 import com.serotonin.util.queue.ByteQueue;
 
 import app.sergeynik.btconnect.R;
@@ -35,6 +40,7 @@ public class DebugActivity extends AppCompatActivity {
         }
         byte[] act_result = data.getByteArrayExtra("REQUEST");
         mByteQueue.push(act_result);
+        Log.d("MESSAGA", mByteQueue.toString());
         edRequest.setText(mByteQueue.toString());
     }
 
@@ -109,4 +115,7 @@ public class DebugActivity extends AppCompatActivity {
 
 
     }
+
 }
+
+
