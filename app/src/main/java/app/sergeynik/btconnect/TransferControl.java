@@ -1,6 +1,7 @@
 package app.sergeynik.btconnect;
 
-import app.sergeynik.library.BluetoothSPP;
+import com.ghgande.j2mod.modbus.msg.ReadMultipleRegistersRequest;
+import com.ghgande.j2mod.modbus.msg.ReadMultipleRegistersResponse;
 
 /**
  * Created by Sergey on 26.11.2016.
@@ -8,7 +9,8 @@ import app.sergeynik.library.BluetoothSPP;
 public class TransferControl {
     private static TransferControl ourInstance = new TransferControl();
 
-    private BluetoothSPP spp;
+    ReadMultipleRegistersRequest mRegistersRequest;
+    ReadMultipleRegistersResponse mRegistersResponse;
     private int mTransferType;
     private byte[] request;
     private byte[] response;
@@ -20,7 +22,6 @@ public class TransferControl {
     private TransferControl() {
         mTransferType = 1;
     }
-
 
     public int getTransferType() {
         return mTransferType;
@@ -42,11 +43,19 @@ public class TransferControl {
         this.response = response;
     }
 
-    public BluetoothSPP getSpp() {
-        return spp;
+    public ReadMultipleRegistersRequest getRegistersRequest() {
+        return mRegistersRequest;
     }
 
-    public void setSpp(BluetoothSPP spp) {
-        this.spp = spp;
+    public void setRegistersRequest(ReadMultipleRegistersRequest registersRequest) {
+        mRegistersRequest = registersRequest;
+    }
+
+    public ReadMultipleRegistersResponse getRegistersResponse() {
+        return mRegistersResponse;
+    }
+
+    public void setRegistersResponse(ReadMultipleRegistersResponse registersResponse) {
+        mRegistersResponse = registersResponse;
     }
 }

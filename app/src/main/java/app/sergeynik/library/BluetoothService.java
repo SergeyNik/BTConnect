@@ -356,14 +356,13 @@ public class BluetoothService {
         }
 
         public void run() {
-
             byte[] buffer;
             ArrayList<Integer> arr_byte = new ArrayList<Integer>();
             ByteQueue byteQueue = new ByteQueue();
+
             // Keep listening to the InputStream while connected
 
             while (true) {  //Go in cycle
-
                 try {
                     // Catch data from stream
                     int data = mmInStream.read();
@@ -371,7 +370,6 @@ public class BluetoothService {
                     switch (mControl.getTransferType()) {
                         case 0: // Android script
                             if (data == 0x0A) {
-
                             } else if (data == 0x0D) {
                                 buffer = new byte[arr_byte.size()];
                                 for (int i = 0; i < arr_byte.size(); i++) {
@@ -388,19 +386,24 @@ public class BluetoothService {
                             break;
 
                         case 1: // Other devices script
+
+                          // All right
                             byteQueue.push(data);
 
                             if (mmInStream.available() == 0){
                                 mControl.putResponse(byteQueue.peekAll());
-
                                 buffer = new byte[byteQueue.size()];
+//                                for (int i = 0; i < byteQueue.size(); i++) {
+//
+//                                Log.e("ONLY_EXCEPTION_MESSAGE", String.valueOf(byteQueue.peek(i)));
+//                                }
                                 for (int i = 0; i < buffer.length; i++) {
                                     buffer[i] = byteQueue.pop();
                                 }
-
-                                // Send the obtained bytes to the UI Activity
+//                             Send the obtained bytes to the UI Activity
                                 mHandler.obtainMessage(BluetoothState.MESSAGE_READ
                                         , buffer.length, -1, buffer).sendToTarget();
+//                                mmInStream.close();
                             }
                             break;
                     }
@@ -412,6 +415,7 @@ public class BluetoothService {
                     break;
                 }
             }
+
         }
 
         // Write to the connected OutStream.

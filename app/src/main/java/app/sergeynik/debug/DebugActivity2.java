@@ -149,8 +149,7 @@ public class DebugActivity2 extends AppCompatActivity {
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.list_request_params, parent, false);
             // set the view's size, margins, paddings and layout parameters
-            RequestHolder vh = new RequestHolder(v);
-            return vh;
+            return new RequestHolder(v);
         }
 
         @Override

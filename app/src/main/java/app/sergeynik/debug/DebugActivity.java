@@ -11,10 +11,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.ghgande.j2mod.modbus.msg.WriteCoilRequest;
-import com.ghgande.j2mod.modbus.msg.WriteSingleRegisterRequest;
-import com.ghgande.j2mod.modbus.procimg.SimpleRegister;
-import com.ghgande.j2mod.modbus.util.ModbusUtil;
 import com.serotonin.util.queue.ByteQueue;
 
 import app.sergeynik.btconnect.R;
@@ -101,7 +97,6 @@ public class DebugActivity extends AppCompatActivity {
             }
         });
 
-        bt = mControl.getSpp();
 
         bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             @Override
