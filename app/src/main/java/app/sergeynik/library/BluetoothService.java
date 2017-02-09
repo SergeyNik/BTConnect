@@ -361,7 +361,6 @@ public class BluetoothService {
             ByteQueue byteQueue = new ByteQueue();
 
             // Keep listening to the InputStream while connected
-
             while (true) {  //Go in cycle
                 try {
                     // Catch data from stream
@@ -387,23 +386,18 @@ public class BluetoothService {
 
                         case 1: // Other devices script
 
-                          // All right
                             byteQueue.push(data);
 
                             if (mmInStream.available() == 0){
                                 mControl.putResponse(byteQueue.peekAll());
                                 buffer = new byte[byteQueue.size()];
-//                                for (int i = 0; i < byteQueue.size(); i++) {
-//
-//                                Log.e("ONLY_EXCEPTION_MESSAGE", String.valueOf(byteQueue.peek(i)));
-//                                }
+
                                 for (int i = 0; i < buffer.length; i++) {
                                     buffer[i] = byteQueue.pop();
                                 }
-//                             Send the obtained bytes to the UI Activity
+                                // Send the obtained bytes to the UI Activity
                                 mHandler.obtainMessage(BluetoothState.MESSAGE_READ
                                         , buffer.length, -1, buffer).sendToTarget();
-//                                mmInStream.close();
                             }
                             break;
                     }

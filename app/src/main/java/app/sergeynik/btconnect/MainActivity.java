@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.RequiresApi;
@@ -35,8 +36,9 @@ import com.ghgande.j2mod.modbus.procimg.SimpleRegister;
 import com.ghgande.j2mod.modbus.util.ModbusUtil;
 import com.serotonin.util.queue.ByteQueue;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Locale;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 
 import app.sergeynik.library.BluetoothSPP;
 import app.sergeynik.library.BluetoothState;
@@ -52,7 +54,7 @@ public class MainActivity extends AppCompatActivity
     int fontSize = 60;
     float[] widths;
     float width;
-
+    private String s;
     private String string;
     private Canvas canvas;
     private byte[] dataBytes;
@@ -87,9 +89,9 @@ public class MainActivity extends AppCompatActivity
         redPaint.setColor(Color.RED);
 
         fontPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-//        fontPaint.setTypeface(Typeface.createFromAsset(
-//                getAssets(), "fonts/LucidaDOS.ttf"));
-        fontPaint.setTextLocale(new Locale("ru"));
+        fontPaint.setTypeface(Typeface.createFromAsset(
+                getAssets(), "fonts/LucidaDOS.ttf"));
+//        fontPaint.setTextLocale(new Locale("ru"));
         fontPaint.setTextSize(fontSize);
         fontPaint.setStyle(Paint.Style.STROKE);
 
@@ -106,7 +108,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
 
-                bt.send(createRequest(1, 3, 1957, 12, 2), false);
+                bt.send(createRequest(1, 3, 1956, 12, 2), false);
                 Log.e("MESSAGA", "Sendaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
                 canvas = mSurface.getHolder().lockCanvas();
                 if (canvas == null) {
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity
                     drawMyStuff(canvas);
                     mSurface.getHolder().unlockCanvasAndPost(canvas);
                 }
+
             }
         });
 
@@ -145,27 +148,17 @@ public class MainActivity extends AppCompatActivity
         bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             public void onDataReceived(byte[] data, String message) {
                 if (data != null){
+
                     ByteQueue byteQueue = new ByteQueue();
-                    for (int i = 3; i < data.length - 2; i++) {
+                    for (int i = 0; i < data.length; i++) {
                         byteQueue.push(data[i]);
                     }
+                    ByteBuffer buf= ByteBuffer.wrap(byteQueue.peekAll());
+                    CharBuffer charbuf = Charset.forName("Cp866").decode(buf);
+                    char[] ch_array = charbuf.array();
+                    for (char ch:ch_array)
+                        Log.e(TAG, String.valueOf(ch));
 
-//                    ByteBuffer bb = ByteBuffer.wrap(byteQueue.peekAll());
-//                    bb.order( ByteOrder.BIG_ENDIAN);
-//                    ByteQueue byteQueue1 = new ByteQueue();
-//                    while( bb.hasRemaining()) {
-//                        byteQueue1.push(bb.get());
-//                        /* Do something with v... */
-//                    }
-
-
-                    try {
-                        String str = new String(byteQueue.peekAll(), "Cp866");
-                        string = new String(str.getBytes("Cp866"), "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                    Log.e(TAG, string);
 
                     canvas = mSurface.getHolder().lockCanvas();
                     if (canvas == null) {
@@ -418,7 +411,7 @@ public class MainActivity extends AppCompatActivity
                 readMultRegsReq.setHeadless();
                 readMultRegsReq.setReference(address);
 
-                readMultRegsReq.setWordCount(40);
+                readMultRegsReq.setWordCount(39);
                 mByteQueue.push(readMultRegsReq.getUnitID());
                 mByteQueue.push(readMultRegsReq.getFunctionCode());
                 mByteQueue.push(readMultRegsReq.getMessage());
@@ -433,18 +426,7 @@ public class MainActivity extends AppCompatActivity
         }
         return mByteQueue.peekAll();
     }
+
 }
 
-
-// Create new fragment and transaction
-//        Fragment newFragment = new ExampleFragment();
-//        FragmentTransaction transaction = getFragmentManager().beginTransaction();
-//
-//// Replace whatever is in the fragment_container view with this fragment,
-//// and add the transaction to the back stack
-//        transaction.replace(R.id.fragment_container, newFragment);
-//        transaction.addToBackStack(null);
-//
-//// Commit the transaction
-//        transaction.commit();
 
