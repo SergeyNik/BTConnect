@@ -7,16 +7,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.RequiresApi;
 import android.support.design.widget.NavigationView;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -36,6 +30,7 @@ import com.ghgande.j2mod.modbus.procimg.SimpleRegister;
 import com.ghgande.j2mod.modbus.util.ModbusUtil;
 import com.serotonin.util.queue.ByteQueue;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -48,90 +43,109 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SurfaceHolder.Callback {
 
     private static final String TAG = "Svetlin SurfaceView";
-    Paint fontPaint;
-    Paint redPaint;
-    String text = "Test width text";
-    int fontSize = 60;
-    float[] widths;
-    float width;
-    private String s;
-    private String string;
+    private static final String CP866 = "Cp866";
+    private static final int ROWS = 4;
+    private static final int COLUMNS = 20;
+    private TransferControl mControl;
+
+    private Paint fontPaintOne;
+    private Paint fontPaintTwo;
+    private Paint fontPaintThree;
+    private Paint fontPaintFour;
+    private Paint redPaint;
+    private static final String text = "Text for example    ";
+    private int fontSize = 60;
+    private float[] widths;
+    private float width;
+    private String firstRow = null;
+    private String secondRow = null;
+    private String thirdRow = null;
+    private String fourthRow = null;
     private Canvas canvas;
-    private byte[] dataBytes;
     private Button btnSend;
     private BluetoothSPP bt;
-    private int fragmentId;
-    private FragmentManager fragmentManager;
-    private FragmentTransaction transaction;
 
     private SurfaceView mSurface;
 
-    Menu menu;
+    private Menu menu;
 
-    @Override
-    public void onAttachFragment(Fragment fragment) {
-        super.onAttachFragment(fragment);
-        // Get current fragment id
-        fragmentId = fragment.getId();
-    }
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        mControl = TransferControl.getInstance();
         // DRAW---------------------------------------------
         mSurface = (SurfaceView) findViewById(R.id.surface);
         mSurface.getHolder().addCallback(this);
 
         redPaint = new Paint();
-        redPaint.setColor(Color.RED);
+        redPaint.setColor(Color.BLACK);
 
-        fontPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fontPaint.setTypeface(Typeface.createFromAsset(
+        fontPaintOne = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fontPaintOne.setTypeface(Typeface.createFromAsset(
                 getAssets(), "fonts/LucidaDOS.ttf"));
-//        fontPaint.setTextLocale(new Locale("ru"));
-        fontPaint.setTextSize(fontSize);
-        fontPaint.setStyle(Paint.Style.STROKE);
-
+        fontPaintOne.setTextSize(fontSize);
+        //fontPaint.setStyle(Paint.Style.STROKE);
         // ширина текста
-        width = fontPaint.measureText(text);
-
+        width = fontPaintOne.measureText(text);
         // посимвольная ширина
         widths = new float[text.length()];
-        fontPaint.getTextWidths(text, widths);
+        fontPaintOne.getTextWidths(text, widths);
+
+        fontPaintOne.setColor(Color.BLACK);
+
+        fontPaintTwo = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fontPaintTwo.setTypeface(Typeface.createFromAsset(
+                getAssets(), "fonts/LucidaDOS.ttf"));
+        fontPaintTwo.setTextSize(fontSize);
+        //fontPaint.setStyle(Paint.Style.STROKE);
+        // ширина текста
+        width = fontPaintTwo.measureText(text);
+        // посимвольная ширина
+        widths = new float[text.length()];
+        fontPaintTwo.getTextWidths(text, widths);
+
+        fontPaintTwo.setColor(Color.BLACK);
+
+        fontPaintThree = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fontPaintThree.setTypeface(Typeface.createFromAsset(
+                getAssets(), "fonts/LucidaDOS.ttf"));
+        fontPaintThree.setTextSize(fontSize);
+        //fontPaint.setStyle(Paint.Style.STROKE);
+        // ширина текста
+        width = fontPaintThree.measureText(text);
+        // посимвольная ширина
+        widths = new float[text.length()];
+        fontPaintThree.getTextWidths(text, widths);
+
+        fontPaintThree.setColor(Color.BLACK);
+
+        fontPaintFour = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fontPaintFour.setTypeface(Typeface.createFromAsset(
+                getAssets(), "fonts/LucidaDOS.ttf"));
+        fontPaintFour.setTextSize(fontSize);
+        //fontPaint.setStyle(Paint.Style.STROKE);
+        // ширина текста
+        width = fontPaintFour.measureText(text);
+        // посимвольная ширина
+        widths = new float[text.length()];
+        fontPaintFour.getTextWidths(text, widths);
+
+        fontPaintFour.setColor(Color.BLACK);
         // DRAW---------------------------------------------
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         btnSend = (Button) findViewById(R.id.btn_send);
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 bt.send(createRequest(1, 3, 1956, 12, 2), false);
-                Log.e("MESSAGA", "Sendaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-                canvas = mSurface.getHolder().lockCanvas();
-                if (canvas == null) {
-                    Log.e(TAG, "Cannot draw onto the canvas as it's null");
-                } else {
-                    drawMyStuff(canvas);
-                    mSurface.getHolder().unlockCanvasAndPost(canvas);
-                }
-
             }
         });
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
 //--------------------------------------------------------------------------------------------------
 
         bt = new BluetoothSPP(this);
@@ -147,28 +161,11 @@ public class MainActivity extends AppCompatActivity
         // Message from friend  ***done with fragments!!!***
         bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             public void onDataReceived(byte[] data, String message) {
-                if (data != null){
-
-                    ByteQueue byteQueue = new ByteQueue();
-                    for (int i = 0; i < data.length; i++) {
-                        byteQueue.push(data[i]);
-                    }
-                    ByteBuffer buf= ByteBuffer.wrap(byteQueue.peekAll());
-                    CharBuffer charbuf = Charset.forName("Cp866").decode(buf);
-                    char[] ch_array = charbuf.array();
-                    for (char ch:ch_array)
-                        Log.e(TAG, String.valueOf(ch));
-
-
-                    canvas = mSurface.getHolder().lockCanvas();
-                    if (canvas == null) {
-                        Log.e(TAG, "Cannot draw onto the canvas as it's null");
-                    } else {
-                        drawMyStuff(canvas);
-                        mSurface.getHolder().unlockCanvasAndPost(canvas);
-                    }
-
-                };
+                if (data != null) {
+                    // calc CRC!!!
+                    bytesInOrder(data);
+                    tryDrawing(mSurface.getHolder());
+                }
             }
         });
 
@@ -181,31 +178,25 @@ public class MainActivity extends AppCompatActivity
                     menu.clear();
                     getMenuInflater().inflate(R.menu.menu_connection, menu);
                 }
-
-
             }
-
             public void onDeviceConnectionFailed() {
 
                 Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Connection failed");
                 }
-
             }
-
             public void onDeviceConnected(String name, String address) {
-
                 Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Connected to " + name);
                     menu.clear();
                     getMenuInflater().inflate(R.menu.menu_disconnection, menu);
-
                 }
             }
         });
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -227,7 +218,6 @@ public class MainActivity extends AppCompatActivity
             if (!bt.isServiceAvailable()) {
                 bt.setupService();
                 bt.startService(BluetoothState.DEVICE_ANDROID);
-
             }
         }
     }
@@ -251,14 +241,9 @@ public class MainActivity extends AppCompatActivity
         switch (id) {
             case R.id.nav_review:
                 break;
-
             case R.id.nav_debug:
-                // изменить на обработку фрагментов
-//                intent = new Intent(this, CanvasActivity.class);
-//                startActivity(intent);
                 break;
         }
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -288,7 +273,6 @@ public class MainActivity extends AppCompatActivity
         }
         return super.onOptionsItemSelected(item);
     }
-
 
     @Override
     protected void onDestroy() {
@@ -329,9 +313,10 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    // Visual text on the screen
+    //==============================================================================================
     private void tryDrawing(SurfaceHolder holder) {
         Log.i(TAG, "Trying to draw...");
-
         canvas = holder.lockCanvas();
         if (canvas == null) {
             Log.e(TAG, "Cannot draw onto the canvas as it's null");
@@ -342,33 +327,25 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void drawMyStuff(final Canvas canvas) {
-        canvas.drawRGB(255, 128, 128);
-
+//        canvas.drawColor(Color.RED);
+        canvas.drawRGB(175,192,215);
         canvas.translate(50, 250);
-
-
         // вывод текста
-//        canvas.drawText(text, 0, 0, fontPaint);
-        if (string != null){
-
-            //canvas.drawText(Arrays.toString(dataBytes), 0, 0, fontPaint);
-
-            canvas.drawText(string, 0, 0, fontPaint);
-        } else{
-            canvas.drawText(text, 0, 0, fontPaint);
+        if (firstRow != null && secondRow != null && thirdRow != null && fourthRow != null) {
+        Log.e(TAG, firstRow.toString());
+            canvas.drawText(firstRow, 0, 0, fontPaintOne);
+            canvas.drawText(secondRow, 0, 80, fontPaintTwo);
+            canvas.drawText(thirdRow, 0, 160, fontPaintThree);
+            canvas.drawText(fourthRow, 0, 240, fontPaintFour);
+        } else {
+            canvas.drawText(text, 0, 0, fontPaintOne);
         }
-
-
-//        Random random = new Random();
-//        Log.i(TAG, "Drawing...");
-//        canvas.drawRGB(255, 128, 128);
     }
+    //==============================================================================================
 
-
-
-    public byte[] createRequest(int slaveId, int func, int address, int value, int reqType){
+    public byte[] createRequest(int slaveId, int func, int address, int value, int reqType) {
         ByteQueue mByteQueue = new ByteQueue();
-        switch (reqType){
+        switch (reqType) {
             case 0:
                 boolean val = (value == 1);
                 WriteCoilRequest mWrCoilReq = new WriteCoilRequest(address, val);
@@ -411,7 +388,7 @@ public class MainActivity extends AppCompatActivity
                 readMultRegsReq.setHeadless();
                 readMultRegsReq.setReference(address);
 
-                readMultRegsReq.setWordCount(39);
+                readMultRegsReq.setWordCount(40);
                 mByteQueue.push(readMultRegsReq.getUnitID());
                 mByteQueue.push(readMultRegsReq.getFunctionCode());
                 mByteQueue.push(readMultRegsReq.getMessage());
@@ -427,6 +404,80 @@ public class MainActivity extends AppCompatActivity
         return mByteQueue.peekAll();
     }
 
+    private void bytesInOrder(byte[] data) {
+        // change the encoding
+        ByteBuffer msgBuf = ByteBuffer.wrap(data);
+        CharBuffer msgCharBuf = Charset.forName(CP866).decode(msgBuf);
+
+        // Drop slaveId, function, number of bytes and CRC in the end
+        char[] msgChArray = new char[msgCharBuf.length()-5];
+        for (int i = 0; i < msgChArray.length; i++) {
+            msgChArray[i] = msgCharBuf.charAt(i + 3);
+        }
+        for (int i = 1; i < msgChArray.length; i+=2) {
+            if(i < msgChArray.length - 1){
+                char temp = msgChArray[i];
+                msgChArray[i] = msgChArray[i - 1];
+                msgChArray[i - 1] = temp;
+            }
+        }
+        for (char ch : msgChArray){
+
+        Log.e(TAG, String.valueOf(ch));
+        }
+        int count = 0;
+        for (int i = 0; i < ROWS; i++) {
+            char[] titleScreen = new char[COLUMNS];
+            for (int j = 0; j < COLUMNS; j++) {
+                if(count < msgChArray.length){
+                    titleScreen[j] = msgChArray[count++];
+                }
+            }
+            String tempStr = String.valueOf(titleScreen);
+            switch (i){
+                case 0:
+                    try {
+                        firstRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    tempStr = null;
+                    titleScreen = null;
+                    break;
+                case 1:
+                    try {
+                        secondRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    tempStr = null;
+                    titleScreen = null;
+                    break;
+                case 2:
+                    try {
+                        thirdRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    tempStr = null;
+                    titleScreen = null;
+                    break;
+                case 3:
+                    try {
+                        fourthRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    tempStr = null;
+                    titleScreen = null;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }
+
+
 
 

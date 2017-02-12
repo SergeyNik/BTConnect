@@ -345,6 +345,7 @@ public class BluetoothService {
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
 
+
             // Get the BluetoothSocket input and output streams
             try {
                 tmpIn = socket.getInputStream();
@@ -385,19 +386,17 @@ public class BluetoothService {
                             break;
 
                         case 1: // Other devices script
-
                             byteQueue.push(data);
-
                             if (mmInStream.available() == 0){
-                                mControl.putResponse(byteQueue.peekAll());
-                                buffer = new byte[byteQueue.size()];
-
-                                for (int i = 0; i < buffer.length; i++) {
-                                    buffer[i] = byteQueue.pop();
+                                if (byteQueue.size() >= 83){
+                                    buffer = new byte[byteQueue.size()];
+                                    for (int i = 0; i < buffer.length; i++) {
+                                        buffer[i] = byteQueue.pop();
+                                    }
+                                    // Send the obtained bytes to the UI Activity
+                                    mHandler.obtainMessage(BluetoothState.MESSAGE_READ
+                                            , buffer.length, -1, buffer).sendToTarget();
                                 }
-                                // Send the obtained bytes to the UI Activity
-                                mHandler.obtainMessage(BluetoothState.MESSAGE_READ
-                                        , buffer.length, -1, buffer).sendToTarget();
                             }
                             break;
                     }
