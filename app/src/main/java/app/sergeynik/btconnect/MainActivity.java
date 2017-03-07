@@ -25,7 +25,10 @@ import android.widget.Toast;
 
 import com.ghgande.j2mod.modbus.msg.ReadMultipleRegistersRequest;
 import com.ghgande.j2mod.modbus.msg.WriteCoilRequest;
+import com.ghgande.j2mod.modbus.msg.WriteFileRecordRequest;
+import com.ghgande.j2mod.modbus.msg.WriteMultipleRegistersRequest;
 import com.ghgande.j2mod.modbus.msg.WriteSingleRegisterRequest;
+import com.ghgande.j2mod.modbus.procimg.Register;
 import com.ghgande.j2mod.modbus.procimg.SimpleRegister;
 import com.ghgande.j2mod.modbus.util.ModbusUtil;
 import com.serotonin.util.queue.ByteQueue;
@@ -34,20 +37,44 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 import app.sergeynik.library.BluetoothSPP;
 import app.sergeynik.library.BluetoothState;
 import app.sergeynik.library.DeviceList;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, SurfaceHolder.Callback {
+        implements NavigationView.OnNavigationItemSelectedListener, SurfaceHolder.Callback, View.OnClickListener{
 
     private static final String TAG = "Svetlin SurfaceView";
     private static final String CP866 = "Cp866";
     private static final int ROWS = 4;
     private static final int COLUMNS = 20;
-    private TransferControl mControl;
 
+    private TransferControl mControl;
+    private char mChar;
+
+    // Buttons___________________________________________
+    private Button btnOne;
+    private Button btnTwo;
+    private Button btnThree;
+    private Button btnFour;
+    private Button btnFive;
+    private Button btnSix;
+    private Button btnSeven;
+    private Button btnEight;
+    private Button btnNine;
+    private Button btnZero;
+    private Button btnEsc;
+    private Button btnEnt;
+    private Button btnToLeft;
+    private Button btnToRight;
+    private Button btnUp;
+    private Button btnDown;
+    private Button btnSend;
+    //___________________________________________________
+
+    // Canvas___________________________________________
     private Paint fontPaintOne;
     private Paint fontPaintTwo;
     private Paint fontPaintThree;
@@ -62,11 +89,10 @@ public class MainActivity extends AppCompatActivity
     private String thirdRow = null;
     private String fourthRow = null;
     private Canvas canvas;
-    private Button btnSend;
+    //___________________________________________________
+
     private BluetoothSPP bt;
-
     private SurfaceView mSurface;
-
     private Menu menu;
 
 
@@ -74,6 +100,25 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        btnOne = (Button) findViewById(R.id.btn_one);
+        btnTwo = (Button) findViewById(R.id.btn_two);
+        btnThree = (Button) findViewById(R.id.btn_three);
+        btnFour = (Button) findViewById(R.id.btn_four);
+        btnFive = (Button) findViewById(R.id.btn_five);
+        btnSix = (Button) findViewById(R.id.btn_six);
+        btnSeven = (Button) findViewById(R.id.btn_seven);
+        btnEight = (Button) findViewById(R.id.btn_eight);
+        btnNine = (Button) findViewById(R.id.btn_nine);
+        btnZero = (Button) findViewById(R.id.btn_zero);
+        btnEsc = (Button) findViewById(R.id.btn_escape);
+        btnEnt = (Button) findViewById(R.id.btn_enter);
+        btnToLeft = (Button) findViewById(R.id.btn_left);
+        btnToRight = (Button) findViewById(R.id.btn_right);
+        btnUp = (Button) findViewById(R.id.btn_up);
+        btnDown = (Button) findViewById(R.id.btn_down);
+        btnSend = (Button) findViewById(R.id.btn_send);
+
         mControl = TransferControl.getInstance();
         // DRAW---------------------------------------------
         mSurface = (SurfaceView) findViewById(R.id.surface);
@@ -92,7 +137,6 @@ public class MainActivity extends AppCompatActivity
         // посимвольная ширина
         widths = new float[text.length()];
         fontPaintOne.getTextWidths(text, widths);
-
         fontPaintOne.setColor(Color.BLACK);
 
         fontPaintTwo = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -105,7 +149,6 @@ public class MainActivity extends AppCompatActivity
         // посимвольная ширина
         widths = new float[text.length()];
         fontPaintTwo.getTextWidths(text, widths);
-
         fontPaintTwo.setColor(Color.BLACK);
 
         fontPaintThree = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -118,7 +161,6 @@ public class MainActivity extends AppCompatActivity
         // посимвольная ширина
         widths = new float[text.length()];
         fontPaintThree.getTextWidths(text, widths);
-
         fontPaintThree.setColor(Color.BLACK);
 
         fontPaintFour = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -131,7 +173,6 @@ public class MainActivity extends AppCompatActivity
         // посимвольная ширина
         widths = new float[text.length()];
         fontPaintFour.getTextWidths(text, widths);
-
         fontPaintFour.setColor(Color.BLACK);
         // DRAW---------------------------------------------
 
@@ -195,6 +236,23 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
+        createRequest(1, 16, 30576, 6, 3);
+        btnOne.setOnClickListener(this);
+        btnTwo.setOnClickListener(this);
+        btnThree.setOnClickListener(this);
+        btnFour.setOnClickListener(this);
+        btnFive.setOnClickListener(this);
+        btnSix.setOnClickListener(this);
+        btnSeven.setOnClickListener(this);
+        btnEight.setOnClickListener(this);
+        btnNine.setOnClickListener(this);
+        btnZero.setOnClickListener(this);
+        btnEsc.setOnClickListener(this);
+        btnEnt.setOnClickListener(this);
+        btnToLeft.setOnClickListener(this);
+        btnToRight.setOnClickListener(this);
+        btnUp.setOnClickListener(this);
+        btnDown.setOnClickListener(this);
     }
 
 
@@ -329,7 +387,7 @@ public class MainActivity extends AppCompatActivity
     private void drawMyStuff(final Canvas canvas) {
 //        canvas.drawColor(Color.RED);
         canvas.drawRGB(175,192,215);
-        canvas.translate(50, 250);
+        canvas.translate(100, 100);
         // вывод текста
         if (firstRow != null && secondRow != null && thirdRow != null && fourthRow != null) {
         Log.e(TAG, firstRow.toString());
@@ -398,6 +456,68 @@ public class MainActivity extends AppCompatActivity
 
                 mByteQueue.push(crc2[0]);
                 mByteQueue.push(crc2[1]);
+                break;
+
+            case 3:
+                SimpleRegister simpleReg = new SimpleRegister(24);
+                WriteMultipleRegistersRequest writeMultRegsReq =
+                        new WriteMultipleRegistersRequest();
+                writeMultRegsReq.setUnitID(1);
+                writeMultRegsReq.setHeadless();
+                writeMultRegsReq.setReference(576);
+                writeMultRegsReq.setDataLength(1);
+                writeMultRegsReq.setRegisters(new Register[]{simpleReg});
+                mByteQueue.push(writeMultRegsReq.getUnitID());
+                mByteQueue.push(writeMultRegsReq.getFunctionCode());
+                mByteQueue.push(writeMultRegsReq.getReference());
+                mByteQueue.push(writeMultRegsReq.getWordCount());
+                mByteQueue.push(writeMultRegsReq.getByteCount());
+                mByteQueue.push(ModbusUtil.lowByte(writeMultRegsReq.getRegisterValue(0)));
+
+                // CRC
+                int[] crc3 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+                        mByteQueue.peekAll().length);
+
+                mByteQueue.push(crc3[0]);
+                mByteQueue.push(crc3[1]);
+
+                char ch = '1';
+                byte b = ModbusUtil.lowByte(ch);
+
+                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
+
+                break;
+
+            case 4:
+                WriteFileRecordRequest fileReq = new WriteFileRecordRequest();
+                fileReq.setUnitID(1);
+                fileReq.setHeadless();
+                WriteFileRecordRequest.RecordRequest recReq =
+                        new WriteFileRecordRequest.RecordRequest(16, 30576, new short[]{25}); // file, record, values
+                fileReq.addRequest(recReq);
+
+                mByteQueue.push(fileReq.getUnitID());
+                mByteQueue.push(fileReq.getFunctionCode());
+                mByteQueue.push(fileReq.getMessage());
+
+                byte popLast = mByteQueue.tailPop();
+                byte popPenulte = mByteQueue.tailPop();
+                mByteQueue.push(popLast);
+                mByteQueue.push(0x01);
+
+                // CRC
+                int[] crc4 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+                        mByteQueue.peekAll().length);
+
+                mByteQueue.push(crc4[0]);
+                mByteQueue.push(crc4[1]);
+
+
+//                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
+                Log.e("!!!!!!!!!!!!!!!!!write ", fileReq.getHexMessage());
+                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(fileReq.getMessage()));
+                Log.e("!!!!!!!!!!!!!!!!!write ", mByteQueue.toString());
+
                 break;
 
         }
@@ -476,6 +596,63 @@ public class MainActivity extends AppCompatActivity
             }
         }
     }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.btn_one:
+                mChar = 49;
+                break;
+            case R.id.btn_two:
+                mChar = 50;
+                break;
+            case R.id.btn_three:
+                mChar = 51;
+                break;
+            case R.id.btn_four:
+                mChar = 52;
+                break;
+            case R.id.btn_five:
+                mChar = 53;
+                break;
+            case R.id.btn_six:
+                mChar = 54;
+                break;
+            case R.id.btn_seven:
+                mChar = 55;
+                break;
+            case R.id.btn_eight:
+                mChar = 56;
+                break;
+            case R.id.btn_nine:
+                mChar = 57;
+                break;
+            case R.id.btn_zero:
+                mChar = 48;
+                break;
+            case R.id.btn_escape:
+                mChar = 24;
+                break;
+            case R.id.btn_enter:
+                mChar = 25;
+                byte[] request = createRequest(1, 10, 30576, 1, 4);
+                bt.send(request, false);
+                break;
+            case R.id.btn_right:
+                mChar = 16;
+                break;
+            case R.id.btn_left:
+                mChar = 17;
+                break;
+            case R.id.btn_up:
+                mChar = 30;
+                break;
+            case R.id.btn_down:
+                mChar = 31;
+                break;
+        }
+    }
+
 }
 
 

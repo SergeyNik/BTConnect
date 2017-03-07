@@ -15,6 +15,16 @@ public class TransferControl {
     private byte[] request;
     private byte[] response;
 
+    private final char[] decodeTable = new char[]{
+            '1' + '2' + '3' + 0x16 +
+            '4' + '5' + '6' + 0x17 +
+            '7' + '8' + '9' + 0x30 +
+            0x24 + '0' + 0x25 + 0x31 +
+            0x27, + 0x26};
+
+
+
+
     public static TransferControl getInstance() {
         return ourInstance;
     }

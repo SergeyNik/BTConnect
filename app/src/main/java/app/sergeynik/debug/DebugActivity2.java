@@ -116,7 +116,8 @@ public class DebugActivity2 extends AppCompatActivity {
             Snackbar.make(v, "Replace with your own action", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
 
-            intent = new Intent(getApplicationContext(), NumberPadActivity.class);
+         //   intent = new Intent(getApplicationContext(), NumberPadActivity.class);
+            intent = new Intent(); // Wrong!!!
             intent.putExtra(EXTRA_POS_ID, getAdapterPosition());
             switch (getAdapterPosition()){
                 case REQUEST_CODE_SLAVE:
