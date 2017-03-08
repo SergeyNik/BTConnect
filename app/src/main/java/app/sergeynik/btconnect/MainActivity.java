@@ -23,21 +23,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.ghgande.j2mod.modbus.msg.ReadMultipleRegistersRequest;
-import com.ghgande.j2mod.modbus.msg.WriteCoilRequest;
-import com.ghgande.j2mod.modbus.msg.WriteFileRecordRequest;
-import com.ghgande.j2mod.modbus.msg.WriteMultipleRegistersRequest;
-import com.ghgande.j2mod.modbus.msg.WriteSingleRegisterRequest;
-import com.ghgande.j2mod.modbus.procimg.Register;
-import com.ghgande.j2mod.modbus.procimg.SimpleRegister;
-import com.ghgande.j2mod.modbus.util.ModbusUtil;
-import com.serotonin.util.queue.ByteQueue;
+import com.ghgande.j2mod.modbus.Modbus;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 
 import app.sergeynik.library.BluetoothSPP;
 import app.sergeynik.library.BluetoothState;
@@ -52,7 +43,7 @@ public class MainActivity extends AppCompatActivity
     private static final int COLUMNS = 20;
 
     private TransferControl mControl;
-    private char mChar;
+    private RequestCreator mCreator;
 
     // Buttons___________________________________________
     private Button btnOne;
@@ -120,6 +111,8 @@ public class MainActivity extends AppCompatActivity
         btnSend = (Button) findViewById(R.id.btn_send);
 
         mControl = TransferControl.getInstance();
+        mCreator = new RequestCreator();
+
         // DRAW---------------------------------------------
         mSurface = (SurfaceView) findViewById(R.id.surface);
         mSurface.getHolder().addCallback(this);
@@ -183,7 +176,7 @@ public class MainActivity extends AppCompatActivity
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                bt.send(createRequest(1, 3, 1956, 12, 2), false);
+                bt.send(mCreator.createRequest(Modbus.READ_MULTIPLE_REGISTERS), false);
             }
         });
 
@@ -236,7 +229,7 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
-        createRequest(1, 16, 30576, 6, 3);
+
         btnOne.setOnClickListener(this);
         btnTwo.setOnClickListener(this);
         btnThree.setOnClickListener(this);
@@ -401,128 +394,129 @@ public class MainActivity extends AppCompatActivity
     }
     //==============================================================================================
 
-    public byte[] createRequest(int slaveId, int func, int address, int value, int reqType) {
-        ByteQueue mByteQueue = new ByteQueue();
-        switch (reqType) {
-            case 0:
-                boolean val = (value == 1);
-                WriteCoilRequest mWrCoilReq = new WriteCoilRequest(address, val);
-                mWrCoilReq.setUnitID(slaveId);
-                mWrCoilReq.setHeadless();
-                mByteQueue.push(mWrCoilReq.getUnitID());
-                mByteQueue.push(mWrCoilReq.getFunctionCode());
-                mByteQueue.push(mWrCoilReq.getMessage());
-                // CRC
-                int[] crc = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-                        mByteQueue.peekAll().length);
-
-                mByteQueue.push(crc[0]);
-                mByteQueue.push(crc[1]);
-
-                break;
-
-            case 1:
-                SimpleRegister register = new SimpleRegister(value);
-                WriteSingleRegisterRequest mWrSingleRegReq =
-                        new WriteSingleRegisterRequest(address, register);
-                mWrSingleRegReq.setUnitID(slaveId);
-                mWrSingleRegReq.setHeadless();
-                mByteQueue.push(mWrSingleRegReq.getUnitID());
-                mByteQueue.push(mWrSingleRegReq.getFunctionCode());
-                mByteQueue.push(mWrSingleRegReq.getMessage());
-                // CRC
-                int[] crc1 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-                        mByteQueue.peekAll().length);
-
-                mByteQueue.push(crc1[0]);
-                mByteQueue.push(crc1[1]);
-                break;
-
-            case 2:
-
-                ReadMultipleRegistersRequest readMultRegsReq = new ReadMultipleRegistersRequest();
-
-                readMultRegsReq.setUnitID(slaveId);
-                readMultRegsReq.setHeadless();
-                readMultRegsReq.setReference(address);
-
-                readMultRegsReq.setWordCount(40);
-                mByteQueue.push(readMultRegsReq.getUnitID());
-                mByteQueue.push(readMultRegsReq.getFunctionCode());
-                mByteQueue.push(readMultRegsReq.getMessage());
-                // CRC
-                int[] crc2 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-                        mByteQueue.peekAll().length);
-
-                mByteQueue.push(crc2[0]);
-                mByteQueue.push(crc2[1]);
-                break;
-
-            case 3:
-                SimpleRegister simpleReg = new SimpleRegister(24);
-                WriteMultipleRegistersRequest writeMultRegsReq =
-                        new WriteMultipleRegistersRequest();
-                writeMultRegsReq.setUnitID(1);
-                writeMultRegsReq.setHeadless();
-                writeMultRegsReq.setReference(576);
-                writeMultRegsReq.setDataLength(1);
-                writeMultRegsReq.setRegisters(new Register[]{simpleReg});
-                mByteQueue.push(writeMultRegsReq.getUnitID());
-                mByteQueue.push(writeMultRegsReq.getFunctionCode());
-                mByteQueue.push(writeMultRegsReq.getReference());
-                mByteQueue.push(writeMultRegsReq.getWordCount());
-                mByteQueue.push(writeMultRegsReq.getByteCount());
-                mByteQueue.push(ModbusUtil.lowByte(writeMultRegsReq.getRegisterValue(0)));
-
-                // CRC
-                int[] crc3 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-                        mByteQueue.peekAll().length);
-
-                mByteQueue.push(crc3[0]);
-                mByteQueue.push(crc3[1]);
-
-                char ch = '1';
-                byte b = ModbusUtil.lowByte(ch);
-
-                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
-
-                break;
-
-            case 4:
-                WriteFileRecordRequest fileReq = new WriteFileRecordRequest();
-                fileReq.setUnitID(1);
-                fileReq.setHeadless();
-                WriteFileRecordRequest.RecordRequest recReq =
-                        new WriteFileRecordRequest.RecordRequest(16, 30576, new short[]{25}); // file, record, values
-                fileReq.addRequest(recReq);
-
-                mByteQueue.push(fileReq.getUnitID());
-                mByteQueue.push(fileReq.getFunctionCode());
-                mByteQueue.push(fileReq.getMessage());
-
-                byte popLast = mByteQueue.tailPop();
-                byte popPenulte = mByteQueue.tailPop();
-                mByteQueue.push(popLast);
-                mByteQueue.push(0x01);
-
-                // CRC
-                int[] crc4 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-                        mByteQueue.peekAll().length);
-
-                mByteQueue.push(crc4[0]);
-                mByteQueue.push(crc4[1]);
-
-
+//    public byte[] createRequest(int slaveId, int func, int address, int value, int reqType) {
+//        ByteQueue mByteQueue = new ByteQueue();
+//        switch (reqType) {
+//            case 0:
+//                boolean val = (value == 1);
+//                WriteCoilRequest mWrCoilReq = new WriteCoilRequest(address, val);
+//                mWrCoilReq.setUnitID(slaveId);
+//                mWrCoilReq.setHeadless();
+//                mByteQueue.push(mWrCoilReq.getUnitID());
+//                mByteQueue.push(mWrCoilReq.getFunctionCode());
+//                mByteQueue.push(mWrCoilReq.getMessage());
+//                // CRC
+//                int[] crc = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+//                        mByteQueue.peekAll().length);
+//
+//                mByteQueue.push(crc[0]);
+//                mByteQueue.push(crc[1]);
+//
+//                break;
+//
+//            case 1:
+//                SimpleRegister register = new SimpleRegister(value);
+//                WriteSingleRegisterRequest mWrSingleRegReq =
+//                        new WriteSingleRegisterRequest(address, register);
+//                mWrSingleRegReq.setUnitID(slaveId);
+//                mWrSingleRegReq.setHeadless();
+//                mByteQueue.push(mWrSingleRegReq.getUnitID());
+//                mByteQueue.push(mWrSingleRegReq.getFunctionCode());
+//                mByteQueue.push(mWrSingleRegReq.getMessage());
+//                // CRC
+//                int[] crc1 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+//                        mByteQueue.peekAll().length);
+//
+//                mByteQueue.push(crc1[0]);
+//                mByteQueue.push(crc1[1]);
+//                break;
+//
+//            case 2:
+//
+//                ReadMultipleRegistersRequest readMultRegsReq = new ReadMultipleRegistersRequest();
+//                readMultRegsReq.setUnitID(slaveId);
+//                readMultRegsReq.setHeadless();
+//                readMultRegsReq.setReference(address);
+//
+//                readMultRegsReq.setWordCount(40);
+//                mByteQueue.push(readMultRegsReq.getUnitID());
+//                mByteQueue.push(readMultRegsReq.getFunctionCode());
+//                mByteQueue.push(readMultRegsReq.getMessage());
+//                // CRC
+//                int[] crc2 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+//                        mByteQueue.peekAll().length);
+//
+//                mByteQueue.push(crc2[0]);
+//                mByteQueue.push(crc2[1]);
+//                break;
+//
+//            case 3:
+//                SimpleRegister simpleReg = new SimpleRegister(24);
+//                WriteMultipleRegistersRequest writeMultRegsReq =
+//                        new WriteMultipleRegistersRequest();
+//                writeMultRegsReq.setUnitID(1);
+//                writeMultRegsReq.setHeadless();
+//                writeMultRegsReq.setReference(576);
+//                writeMultRegsReq.setDataLength(1);
+//                writeMultRegsReq.setRegisters(new Register[]{simpleReg});
+//                mByteQueue.push(writeMultRegsReq.getUnitID());
+//                mByteQueue.push(writeMultRegsReq.getFunctionCode());
+//                mByteQueue.push(writeMultRegsReq.getReference());
+//                mByteQueue.push(writeMultRegsReq.getWordCount());
+//                mByteQueue.push(writeMultRegsReq.getByteCount());
+//                mByteQueue.push(ModbusUtil.lowByte(writeMultRegsReq.getRegisterValue(0)));
+//
+//                // CRC
+//                int[] crc3 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+//                        mByteQueue.peekAll().length);
+//
+//                mByteQueue.push(crc3[0]);
+//                mByteQueue.push(crc3[1]);
+//
+//                char ch = '1';
+//                byte b = ModbusUtil.lowByte(ch);
+//
 //                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
-                Log.e("!!!!!!!!!!!!!!!!!write ", fileReq.getHexMessage());
-                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(fileReq.getMessage()));
-                Log.e("!!!!!!!!!!!!!!!!!write ", mByteQueue.toString());
-
-                break;
-
-        }
-        return mByteQueue.peekAll();
-    }
+//
+//                break;
+//
+//            case 4:
+//                WriteFileRecordRequest fileReq = new WriteFileRecordRequest();
+//                fileReq.setUnitID(1);
+//                fileReq.setHeadless();
+//                WriteFileRecordRequest.RecordRequest recReq =
+//                        new WriteFileRecordRequest.RecordRequest(
+//                                16, 30576, new short[]{25}); // 16($10) - file, record, values
+//                                                             // 25 - Enter
+//                fileReq.addRequest(recReq);
+//
+//                mByteQueue.push(fileReq.getUnitID());
+//                mByteQueue.push(fileReq.getFunctionCode());
+//                mByteQueue.push(fileReq.getMessage());
+//
+//                byte popLast = mByteQueue.tailPop();
+//                byte popPenulte = mByteQueue.tailPop();
+//                mByteQueue.push(popLast);
+//                mByteQueue.push(0x01);
+//
+//                // CRC
+//                int[] crc4 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
+//                        mByteQueue.peekAll().length);
+//
+//                mByteQueue.push(crc4[0]);
+//                mByteQueue.push(crc4[1]);
+//
+//
+//                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
+//                Log.e("!!!!!!!!!!!!!!!!!write ", fileReq.getHexMessage());
+//                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(fileReq.getMessage()));
+//                Log.e("!!!!!!!!!!!!!!!!!write ", mByteQueue.toString());
+//
+//                break;
+//
+//        }
+//        return mByteQueue.peekAll();
+//    }
 
     private void bytesInOrder(byte[] data) {
         // change the encoding
@@ -599,58 +593,59 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onClick(View v) {
+
         switch (v.getId()){
+
             case R.id.btn_one:
-                mChar = 49;
+                mCreator.setPressedKey(KeyboardRTU.ONE);
                 break;
             case R.id.btn_two:
-                mChar = 50;
+                mCreator.setPressedKey(KeyboardRTU.TWO);
                 break;
             case R.id.btn_three:
-                mChar = 51;
+                mCreator.setPressedKey(KeyboardRTU.THREE);
                 break;
             case R.id.btn_four:
-                mChar = 52;
+                mCreator.setPressedKey(KeyboardRTU.FOUR);
                 break;
             case R.id.btn_five:
-                mChar = 53;
+                mCreator.setPressedKey(KeyboardRTU.FIVE);
                 break;
             case R.id.btn_six:
-                mChar = 54;
+                mCreator.setPressedKey(KeyboardRTU.SIX);
                 break;
             case R.id.btn_seven:
-                mChar = 55;
+                mCreator.setPressedKey(KeyboardRTU.SEVEN);
                 break;
             case R.id.btn_eight:
-                mChar = 56;
+                mCreator.setPressedKey(KeyboardRTU.EIGHT);
                 break;
             case R.id.btn_nine:
-                mChar = 57;
+                mCreator.setPressedKey(KeyboardRTU.NINE);
                 break;
             case R.id.btn_zero:
-                mChar = 48;
+                mCreator.setPressedKey(KeyboardRTU.ZERO);
                 break;
             case R.id.btn_escape:
-                mChar = 24;
+                mCreator.setPressedKey(KeyboardRTU.ESCAPE);
                 break;
             case R.id.btn_enter:
-                mChar = 25;
-                byte[] request = createRequest(1, 10, 30576, 1, 4);
-                bt.send(request, false);
+                mCreator.setPressedKey(KeyboardRTU.ENTER);
                 break;
             case R.id.btn_right:
-                mChar = 16;
+                mCreator.setPressedKey(KeyboardRTU.RIGHT);
                 break;
             case R.id.btn_left:
-                mChar = 17;
+                mCreator.setPressedKey(KeyboardRTU.LEFT);
                 break;
             case R.id.btn_up:
-                mChar = 30;
+                mCreator.setPressedKey(KeyboardRTU.UP);
                 break;
             case R.id.btn_down:
-                mChar = 31;
+                mCreator.setPressedKey(KeyboardRTU.DOWN);
                 break;
         }
+        bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
     }
 
 }
