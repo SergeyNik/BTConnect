@@ -13,7 +13,7 @@ import com.serotonin.util.queue.ByteQueue;
 public class RequestCreator {
     private static final int FILE = 16;
     private static final int ADDRES_WRITE = 30576;
-    private static final int ADDRES_READ = 1957;
+    private static final int ADDRES_READ = 1956;
     private static final int SLAVE_ID = 1;
     private static final byte STRANGE_BIT = 0x01;
 

@@ -388,7 +388,7 @@ public class BluetoothService {
                         case 1: // Other devices script
                             byteQueue.push(data);
                             if (mmInStream.available() == 0){
-                                if (byteQueue.size() >= 83){
+                                if (byteQueue.size() >= 80){
                                     buffer = new byte[byteQueue.size()];
                                     for (int i = 0; i < buffer.length; i++) {
                                         buffer[i] = byteQueue.pop();

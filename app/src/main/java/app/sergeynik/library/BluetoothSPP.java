@@ -267,7 +267,7 @@ public class BluetoothSPP {
         mBluetoothAdapter.enable();
     }
     
-    public void send(byte[] data, boolean CRLF) {
+    public synchronized void send(byte[] data, boolean CRLF) {
         if(mChatService.getState() == BluetoothState.STATE_CONNECTED) {
             if(CRLF) {
                 byte[] data2 = new byte[data.length + 2];
@@ -282,7 +282,7 @@ public class BluetoothSPP {
         }
     }
     
-    public void send(String data, boolean CRLF) {
+    public synchronized void send(String data, boolean CRLF) {
         if(mChatService.getState() == BluetoothState.STATE_CONNECTED) {
             if(CRLF) 
                 data += "\r\n"; 

@@ -29,21 +29,28 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Timer;
 
 import app.sergeynik.library.BluetoothSPP;
 import app.sergeynik.library.BluetoothState;
 import app.sergeynik.library.DeviceList;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, SurfaceHolder.Callback, View.OnClickListener{
+        implements NavigationView.OnNavigationItemSelectedListener,
+        SurfaceHolder.Callback, View.OnClickListener, MyTimerTask.MyCallback{
 
     private static final String TAG = "Svetlin SurfaceView";
     private static final String CP866 = "Cp866";
     private static final int ROWS = 4;
     private static final int COLUMNS = 20;
+    private int mCount = 0;
 
     private TransferControl mControl;
     private RequestCreator mCreator;
+    private byte[] mBytes;
+    private Timer mTimer;
+    private MyTimerTask mMyTimerTask;
 
     // Buttons___________________________________________
     private Button btnOne;
@@ -176,7 +183,7 @@ public class MainActivity extends AppCompatActivity
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                bt.send(mCreator.createRequest(Modbus.READ_MULTIPLE_REGISTERS), false);
+                bt.send(mBytes, false);
             }
         });
 
@@ -192,20 +199,23 @@ public class MainActivity extends AppCompatActivity
             finish();
         }
 
-        // Message from friend  ***done with fragments!!!***
         bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             public void onDataReceived(byte[] data, String message) {
                 if (data != null) {
-                    // calc CRC!!!
-                    bytesInOrder(data);
-                    tryDrawing(mSurface.getHolder());
+                    if(mBytes != null && !Arrays.equals(data, mBytes) && data[0] == 1 && data[1] == 3){
+                        bytesInOrder(data);
+                        tryDrawing(mSurface.getHolder());
+                    }
                 }
             }
         });
 
         bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
             public void onDeviceDisconnected() {
-
+                if (mTimer != null) {
+                    mTimer.cancel();
+                    mTimer = null;
+                }
                 Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Not connect");
@@ -214,7 +224,10 @@ public class MainActivity extends AppCompatActivity
                 }
             }
             public void onDeviceConnectionFailed() {
-
+                if (mTimer != null) {
+                    mTimer.cancel();
+                    mTimer = null;
+                }
                 Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Connection failed");
@@ -227,6 +240,11 @@ public class MainActivity extends AppCompatActivity
                     menu.clear();
                     getMenuInflater().inflate(R.menu.menu_disconnection, menu);
                 }
+                Log.e(TAG, String.valueOf(mCount));
+                mTimer = new Timer();
+                mMyTimerTask = new MyTimerTask();
+                mMyTimerTask.registerCallBack(MainActivity.this);
+                mTimer.schedule(mMyTimerTask, 1000, 500);
             }
         });
 
@@ -328,6 +346,10 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
         bt.disconnect();
         bt.stopService();
     }
@@ -383,7 +405,6 @@ public class MainActivity extends AppCompatActivity
         canvas.translate(100, 100);
         // вывод текста
         if (firstRow != null && secondRow != null && thirdRow != null && fourthRow != null) {
-        Log.e(TAG, firstRow.toString());
             canvas.drawText(firstRow, 0, 0, fontPaintOne);
             canvas.drawText(secondRow, 0, 80, fontPaintTwo);
             canvas.drawText(thirdRow, 0, 160, fontPaintThree);
@@ -394,139 +415,16 @@ public class MainActivity extends AppCompatActivity
     }
     //==============================================================================================
 
-//    public byte[] createRequest(int slaveId, int func, int address, int value, int reqType) {
-//        ByteQueue mByteQueue = new ByteQueue();
-//        switch (reqType) {
-//            case 0:
-//                boolean val = (value == 1);
-//                WriteCoilRequest mWrCoilReq = new WriteCoilRequest(address, val);
-//                mWrCoilReq.setUnitID(slaveId);
-//                mWrCoilReq.setHeadless();
-//                mByteQueue.push(mWrCoilReq.getUnitID());
-//                mByteQueue.push(mWrCoilReq.getFunctionCode());
-//                mByteQueue.push(mWrCoilReq.getMessage());
-//                // CRC
-//                int[] crc = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-//                        mByteQueue.peekAll().length);
-//
-//                mByteQueue.push(crc[0]);
-//                mByteQueue.push(crc[1]);
-//
-//                break;
-//
-//            case 1:
-//                SimpleRegister register = new SimpleRegister(value);
-//                WriteSingleRegisterRequest mWrSingleRegReq =
-//                        new WriteSingleRegisterRequest(address, register);
-//                mWrSingleRegReq.setUnitID(slaveId);
-//                mWrSingleRegReq.setHeadless();
-//                mByteQueue.push(mWrSingleRegReq.getUnitID());
-//                mByteQueue.push(mWrSingleRegReq.getFunctionCode());
-//                mByteQueue.push(mWrSingleRegReq.getMessage());
-//                // CRC
-//                int[] crc1 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-//                        mByteQueue.peekAll().length);
-//
-//                mByteQueue.push(crc1[0]);
-//                mByteQueue.push(crc1[1]);
-//                break;
-//
-//            case 2:
-//
-//                ReadMultipleRegistersRequest readMultRegsReq = new ReadMultipleRegistersRequest();
-//                readMultRegsReq.setUnitID(slaveId);
-//                readMultRegsReq.setHeadless();
-//                readMultRegsReq.setReference(address);
-//
-//                readMultRegsReq.setWordCount(40);
-//                mByteQueue.push(readMultRegsReq.getUnitID());
-//                mByteQueue.push(readMultRegsReq.getFunctionCode());
-//                mByteQueue.push(readMultRegsReq.getMessage());
-//                // CRC
-//                int[] crc2 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-//                        mByteQueue.peekAll().length);
-//
-//                mByteQueue.push(crc2[0]);
-//                mByteQueue.push(crc2[1]);
-//                break;
-//
-//            case 3:
-//                SimpleRegister simpleReg = new SimpleRegister(24);
-//                WriteMultipleRegistersRequest writeMultRegsReq =
-//                        new WriteMultipleRegistersRequest();
-//                writeMultRegsReq.setUnitID(1);
-//                writeMultRegsReq.setHeadless();
-//                writeMultRegsReq.setReference(576);
-//                writeMultRegsReq.setDataLength(1);
-//                writeMultRegsReq.setRegisters(new Register[]{simpleReg});
-//                mByteQueue.push(writeMultRegsReq.getUnitID());
-//                mByteQueue.push(writeMultRegsReq.getFunctionCode());
-//                mByteQueue.push(writeMultRegsReq.getReference());
-//                mByteQueue.push(writeMultRegsReq.getWordCount());
-//                mByteQueue.push(writeMultRegsReq.getByteCount());
-//                mByteQueue.push(ModbusUtil.lowByte(writeMultRegsReq.getRegisterValue(0)));
-//
-//                // CRC
-//                int[] crc3 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-//                        mByteQueue.peekAll().length);
-//
-//                mByteQueue.push(crc3[0]);
-//                mByteQueue.push(crc3[1]);
-//
-//                char ch = '1';
-//                byte b = ModbusUtil.lowByte(ch);
-//
-//                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
-//
-//                break;
-//
-//            case 4:
-//                WriteFileRecordRequest fileReq = new WriteFileRecordRequest();
-//                fileReq.setUnitID(1);
-//                fileReq.setHeadless();
-//                WriteFileRecordRequest.RecordRequest recReq =
-//                        new WriteFileRecordRequest.RecordRequest(
-//                                16, 30576, new short[]{25}); // 16($10) - file, record, values
-//                                                             // 25 - Enter
-//                fileReq.addRequest(recReq);
-//
-//                mByteQueue.push(fileReq.getUnitID());
-//                mByteQueue.push(fileReq.getFunctionCode());
-//                mByteQueue.push(fileReq.getMessage());
-//
-//                byte popLast = mByteQueue.tailPop();
-//                byte popPenulte = mByteQueue.tailPop();
-//                mByteQueue.push(popLast);
-//                mByteQueue.push(0x01);
-//
-//                // CRC
-//                int[] crc4 = ModbusUtil.calculateCRC(mByteQueue.peekAll(), 0,
-//                        mByteQueue.peekAll().length);
-//
-//                mByteQueue.push(crc4[0]);
-//                mByteQueue.push(crc4[1]);
-//
-//
-//                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(mByteQueue.peekAll()));
-//                Log.e("!!!!!!!!!!!!!!!!!write ", fileReq.getHexMessage());
-//                Log.e("!!!!!!!!!!!!!!!!!write ", Arrays.toString(fileReq.getMessage()));
-//                Log.e("!!!!!!!!!!!!!!!!!write ", mByteQueue.toString());
-//
-//                break;
-//
-//        }
-//        return mByteQueue.peekAll();
-//    }
 
     private void bytesInOrder(byte[] data) {
         // change the encoding
         ByteBuffer msgBuf = ByteBuffer.wrap(data);
         CharBuffer msgCharBuf = Charset.forName(CP866).decode(msgBuf);
-
         // Drop slaveId, function, number of bytes and CRC in the end
         char[] msgChArray = new char[msgCharBuf.length()-5];
         for (int i = 0; i < msgChArray.length; i++) {
             msgChArray[i] = msgCharBuf.charAt(i + 3);
+            //Log.e(TAG, String.valueOf(msgChArray[i]));
         }
         for (int i = 1; i < msgChArray.length; i+=2) {
             if(i < msgChArray.length - 1){
@@ -535,10 +433,9 @@ public class MainActivity extends AppCompatActivity
                 msgChArray[i - 1] = temp;
             }
         }
-        for (char ch : msgChArray){
-
-        Log.e(TAG, String.valueOf(ch));
-        }
+//        for (char ch : msgChArray){
+//            Log.e(TAG, String.valueOf(ch));
+//        }
         int count = 0;
         for (int i = 0; i < ROWS; i++) {
             char[] titleScreen = new char[COLUMNS];
@@ -648,6 +545,13 @@ public class MainActivity extends AppCompatActivity
         bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
     }
 
+    @Override
+    public void callBackReturn() {
+        mBytes = mCreator.createRequest(Modbus.READ_MULTIPLE_REGISTERS);
+        bt.send(mBytes, false);
+        ++mCount;
+        Log.e(TAG, String.valueOf(mCount));
+    }
 }
 
 
