@@ -9,6 +9,9 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
@@ -19,8 +22,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.ghgande.j2mod.modbus.Modbus;
@@ -38,13 +40,15 @@ import app.sergeynik.library.DeviceList;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        SurfaceHolder.Callback, View.OnClickListener, MyTimerTask.MyCallback{
+        SurfaceHolder.Callback, MyTimerTask.MyCallback, KeyboardFragment.KeyboardCallback,
+        NumPadFragment.NumPadCallback{
 
     private static final String TAG = "Svetlin SurfaceView";
     private static final String CP866 = "Cp866";
     private static final int ROWS = 4;
     private static final int COLUMNS = 20;
     private int mCount = 0;
+    private FragmentManager mFragmentManager;
 
     private TransferControl mControl;
     private RequestCreator mCreator;
@@ -52,25 +56,7 @@ public class MainActivity extends AppCompatActivity
     private Timer mTimer;
     private MyTimerTask mMyTimerTask;
 
-    // Buttons___________________________________________
-    private Button btnOne;
-    private Button btnTwo;
-    private Button btnThree;
-    private Button btnFour;
-    private Button btnFive;
-    private Button btnSix;
-    private Button btnSeven;
-    private Button btnEight;
-    private Button btnNine;
-    private Button btnZero;
-    private Button btnEsc;
-    private Button btnEnt;
-    private Button btnToLeft;
-    private Button btnToRight;
-    private Button btnUp;
-    private Button btnDown;
-    private Button btnSend;
-    //___________________________________________________
+    private TextView textStatus;
 
     // Canvas___________________________________________
     private Paint fontPaintOne;
@@ -79,7 +65,7 @@ public class MainActivity extends AppCompatActivity
     private Paint fontPaintFour;
     private Paint redPaint;
     private static final String text = "Text for example    ";
-    private int fontSize = 60;
+    private int fontSize = 75;
     private float[] widths;
     private float width;
     private String firstRow = null;
@@ -99,26 +85,10 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnOne = (Button) findViewById(R.id.btn_one);
-        btnTwo = (Button) findViewById(R.id.btn_two);
-        btnThree = (Button) findViewById(R.id.btn_three);
-        btnFour = (Button) findViewById(R.id.btn_four);
-        btnFive = (Button) findViewById(R.id.btn_five);
-        btnSix = (Button) findViewById(R.id.btn_six);
-        btnSeven = (Button) findViewById(R.id.btn_seven);
-        btnEight = (Button) findViewById(R.id.btn_eight);
-        btnNine = (Button) findViewById(R.id.btn_nine);
-        btnZero = (Button) findViewById(R.id.btn_zero);
-        btnEsc = (Button) findViewById(R.id.btn_escape);
-        btnEnt = (Button) findViewById(R.id.btn_enter);
-        btnToLeft = (Button) findViewById(R.id.btn_left);
-        btnToRight = (Button) findViewById(R.id.btn_right);
-        btnUp = (Button) findViewById(R.id.btn_up);
-        btnDown = (Button) findViewById(R.id.btn_down);
-        btnSend = (Button) findViewById(R.id.btn_send);
-
         mControl = TransferControl.getInstance();
         mCreator = new RequestCreator();
+
+        textStatus = (TextView) findViewById(R.id.text_status);
 
         // DRAW---------------------------------------------
         mSurface = (SurfaceView) findViewById(R.id.surface);
@@ -179,14 +149,6 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        btnSend = (Button) findViewById(R.id.btn_send);
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bt.send(mBytes, false);
-            }
-        });
-
 //--------------------------------------------------------------------------------------------------
 
         bt = new BluetoothSPP(this);
@@ -216,7 +178,6 @@ public class MainActivity extends AppCompatActivity
                     mTimer.cancel();
                     mTimer = null;
                 }
-                Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Not connect");
                     menu.clear();
@@ -228,13 +189,11 @@ public class MainActivity extends AppCompatActivity
                     mTimer.cancel();
                     mTimer = null;
                 }
-                Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Connection failed");
                 }
             }
             public void onDeviceConnected(String name, String address) {
-                Button textStatus = (Button) findViewById(R.id.btn_send);
                 if (textStatus != null) {
                     textStatus.setText("Status : Connected to " + name);
                     menu.clear();
@@ -248,22 +207,14 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        btnOne.setOnClickListener(this);
-        btnTwo.setOnClickListener(this);
-        btnThree.setOnClickListener(this);
-        btnFour.setOnClickListener(this);
-        btnFive.setOnClickListener(this);
-        btnSix.setOnClickListener(this);
-        btnSeven.setOnClickListener(this);
-        btnEight.setOnClickListener(this);
-        btnNine.setOnClickListener(this);
-        btnZero.setOnClickListener(this);
-        btnEsc.setOnClickListener(this);
-        btnEnt.setOnClickListener(this);
-        btnToLeft.setOnClickListener(this);
-        btnToRight.setOnClickListener(this);
-        btnUp.setOnClickListener(this);
-        btnDown.setOnClickListener(this);
+        mFragmentManager = getSupportFragmentManager();
+        Fragment fragment = mFragmentManager.findFragmentById(R.id.fragment_container);
+        if (fragment == null) {
+            fragment = new KeyboardFragment();
+            mFragmentManager.beginTransaction()
+                    .add(R.id.fragment_container, fragment)
+                    .commit();
+        }
     }
 
 
@@ -427,10 +378,15 @@ public class MainActivity extends AppCompatActivity
             //Log.e(TAG, String.valueOf(msgChArray[i]));
         }
         for (int i = 1; i < msgChArray.length; i+=2) {
-            if(i < msgChArray.length - 1){
+            if(i < msgChArray.length){
                 char temp = msgChArray[i];
                 msgChArray[i] = msgChArray[i - 1];
                 msgChArray[i - 1] = temp;
+            }
+        }
+        for (int i = 0; i < msgChArray.length; i++){
+            if(msgChArray[i] == 'н'){
+                msgChArray[i] = 'H';
             }
         }
 //        for (char ch : msgChArray){
@@ -488,11 +444,57 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
     @Override
-    public void onClick(View v) {
+    public void callBackReturn() {
+        mBytes = mCreator.createRequest(Modbus.READ_MULTIPLE_REGISTERS);
+        bt.send(mBytes, false);
+        ++mCount;
+        Log.e(TAG, String.valueOf(mCount));
+    }
 
-        switch (v.getId()){
+    @Override
+    public void keyBoardReturn(int id) {
+        switch (id){
+            case R.id.btn_to_numpad:
+                // Create new fragment and transaction
+                Fragment numPadFragment = new NumPadFragment();
+                FragmentTransaction transaction = mFragmentManager.beginTransaction();
+                transaction.replace(R.id.fragment_container, numPadFragment);
+                transaction.addToBackStack(null);
+                // Commit the transaction
+                transaction.commit();
+                break;
+            case R.id.btn_escape:
+                mCreator.setPressedKey(KeyboardRTU.ESCAPE);
+                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                break;
+            case R.id.btn_enter:
+                mCreator.setPressedKey(KeyboardRTU.ENTER);
+                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                break;
+            case R.id.btn_right:
+                mCreator.setPressedKey(KeyboardRTU.RIGHT);
+                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                break;
+            case R.id.btn_left:
+                mCreator.setPressedKey(KeyboardRTU.LEFT);
+                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                break;
+            case R.id.btn_up:
+                mCreator.setPressedKey(KeyboardRTU.UP);
+                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                break;
+            case R.id.btn_down:
+                mCreator.setPressedKey(KeyboardRTU.DOWN);
+                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                break;
+        }
+    }
 
+    @Override
+    public void numPadReturn(int id) {
+        switch (id) {
             case R.id.btn_one:
                 mCreator.setPressedKey(KeyboardRTU.ONE);
                 break;
@@ -523,34 +525,8 @@ public class MainActivity extends AppCompatActivity
             case R.id.btn_zero:
                 mCreator.setPressedKey(KeyboardRTU.ZERO);
                 break;
-            case R.id.btn_escape:
-                mCreator.setPressedKey(KeyboardRTU.ESCAPE);
-                break;
-            case R.id.btn_enter:
-                mCreator.setPressedKey(KeyboardRTU.ENTER);
-                break;
-            case R.id.btn_right:
-                mCreator.setPressedKey(KeyboardRTU.RIGHT);
-                break;
-            case R.id.btn_left:
-                mCreator.setPressedKey(KeyboardRTU.LEFT);
-                break;
-            case R.id.btn_up:
-                mCreator.setPressedKey(KeyboardRTU.UP);
-                break;
-            case R.id.btn_down:
-                mCreator.setPressedKey(KeyboardRTU.DOWN);
-                break;
         }
         bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
-    }
-
-    @Override
-    public void callBackReturn() {
-        mBytes = mCreator.createRequest(Modbus.READ_MULTIPLE_REGISTERS);
-        bt.send(mBytes, false);
-        ++mCount;
-        Log.e(TAG, String.valueOf(mCount));
     }
 }
 
