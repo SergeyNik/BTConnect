@@ -40,21 +40,21 @@ import app.sergeynik.library.DeviceList;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        SurfaceHolder.Callback, MyTimerTask.MyCallback, KeyboardFragment.KeyboardCallback,
+        SurfaceHolder.Callback, PollDeviceTask.MyCallback, KeyboardFragment.KeyboardCallback,
         NumPadFragment.NumPadCallback{
 
-    private static final String TAG = "Svetlin SurfaceView";
-    private static final String CP866 = "Cp866";
-    private static final int ROWS = 4;
-    private static final int COLUMNS = 20;
-    private int mCount = 0;
-    private FragmentManager mFragmentManager;
+    private static final String ENCODING_CP866 = "Cp866";
+    private static final String ENCODING_1251 = "windows-1251";
 
-    private TransferControl mControl;
-    private RequestCreator mCreator;
-    private byte[] mBytes;
-    private Timer mTimer;
-    private MyTimerTask mMyTimerTask;
+    private static final int SCREEN_ROWS = 4;
+    private static final int SCREEN_COLUMNS = 20;
+    private static final int THROW_EXCESS = 5;
+
+    private FragmentManager mFragmentManager;
+    private RequestProducer mRequestProducer;
+    private byte[] mReadyHexRequest;
+    private Timer mPeriodScan;
+    private PollDeviceTask mPollDeviceTask;
 
     private TextView textStatus;
 
@@ -63,15 +63,23 @@ public class MainActivity extends AppCompatActivity
     private Paint fontPaintTwo;
     private Paint fontPaintThree;
     private Paint fontPaintFour;
-    private Paint redPaint;
-    private static final String text = "Text for example    ";
-    private int fontSize = 75;
-    private float[] widths;
-    private float width;
+
+    // 20 characters in row
+    private static final String START_TEXT =  "    БИОИ ОЗНА       ";
+    private static final String START_TEXT2 = " СПУТНИК МАССОМЕР   ";
+    private static final String START_TEXT3 = "   ПОДКЛЮЧЕНИЕ      ";
+    private static final String START_TEXT4 = "    ОТСУТСТВУЕТ     ";
+    private static final String FONT_LUCIDA_DOS = "fonts/LucidaDOS.ttf";
+
+    private static final int fontSize = 75;
+    private float[] charWidth;
+    private float textWidth;
+
     private String firstRow = null;
     private String secondRow = null;
     private String thirdRow = null;
     private String fourthRow = null;
+
     private Canvas canvas;
     //___________________________________________________
 
@@ -85,65 +93,18 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mControl = TransferControl.getInstance();
-        mCreator = new RequestCreator();
-
+        mRequestProducer = new RequestProducer();
         textStatus = (TextView) findViewById(R.id.text_status);
 
         // DRAW---------------------------------------------
         mSurface = (SurfaceView) findViewById(R.id.surface);
         mSurface.getHolder().addCallback(this);
 
-        redPaint = new Paint();
-        redPaint.setColor(Color.BLACK);
+        fontPaintOne = createPaint();
+        fontPaintTwo = createPaint();
+        fontPaintThree = createPaint();
+        fontPaintFour = createPaint();
 
-        fontPaintOne = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fontPaintOne.setTypeface(Typeface.createFromAsset(
-                getAssets(), "fonts/LucidaDOS.ttf"));
-        fontPaintOne.setTextSize(fontSize);
-        //fontPaint.setStyle(Paint.Style.STROKE);
-        // ширина текста
-        width = fontPaintOne.measureText(text);
-        // посимвольная ширина
-        widths = new float[text.length()];
-        fontPaintOne.getTextWidths(text, widths);
-        fontPaintOne.setColor(Color.BLACK);
-
-        fontPaintTwo = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fontPaintTwo.setTypeface(Typeface.createFromAsset(
-                getAssets(), "fonts/LucidaDOS.ttf"));
-        fontPaintTwo.setTextSize(fontSize);
-        //fontPaint.setStyle(Paint.Style.STROKE);
-        // ширина текста
-        width = fontPaintTwo.measureText(text);
-        // посимвольная ширина
-        widths = new float[text.length()];
-        fontPaintTwo.getTextWidths(text, widths);
-        fontPaintTwo.setColor(Color.BLACK);
-
-        fontPaintThree = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fontPaintThree.setTypeface(Typeface.createFromAsset(
-                getAssets(), "fonts/LucidaDOS.ttf"));
-        fontPaintThree.setTextSize(fontSize);
-        //fontPaint.setStyle(Paint.Style.STROKE);
-        // ширина текста
-        width = fontPaintThree.measureText(text);
-        // посимвольная ширина
-        widths = new float[text.length()];
-        fontPaintThree.getTextWidths(text, widths);
-        fontPaintThree.setColor(Color.BLACK);
-
-        fontPaintFour = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fontPaintFour.setTypeface(Typeface.createFromAsset(
-                getAssets(), "fonts/LucidaDOS.ttf"));
-        fontPaintFour.setTextSize(fontSize);
-        //fontPaint.setStyle(Paint.Style.STROKE);
-        // ширина текста
-        width = fontPaintFour.measureText(text);
-        // посимвольная ширина
-        widths = new float[text.length()];
-        fontPaintFour.getTextWidths(text, widths);
-        fontPaintFour.setColor(Color.BLACK);
         // DRAW---------------------------------------------
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -164,7 +125,7 @@ public class MainActivity extends AppCompatActivity
         bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
             public void onDataReceived(byte[] data, String message) {
                 if (data != null) {
-                    if(mBytes != null && !Arrays.equals(data, mBytes) && data[0] == 1 && data[1] == 3){
+                    if(mReadyHexRequest != null && !Arrays.equals(data, mReadyHexRequest) && data[0] == 1 && data[1] == 3){
                         bytesInOrder(data);
                         tryDrawing(mSurface.getHolder());
                     }
@@ -174,36 +135,35 @@ public class MainActivity extends AppCompatActivity
 
         bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
             public void onDeviceDisconnected() {
-                if (mTimer != null) {
-                    mTimer.cancel();
-                    mTimer = null;
+                if (mPeriodScan != null) {
+                    mPeriodScan.cancel();
+                    mPeriodScan = null;
                 }
                 if (textStatus != null) {
-                    textStatus.setText("Status : Not connect");
+                    textStatus.setText(R.string.status_not);
                     menu.clear();
                     getMenuInflater().inflate(R.menu.menu_connection, menu);
                 }
             }
             public void onDeviceConnectionFailed() {
-                if (mTimer != null) {
-                    mTimer.cancel();
-                    mTimer = null;
+                if (mPeriodScan != null) {
+                    mPeriodScan.cancel();
+                    mPeriodScan = null;
                 }
                 if (textStatus != null) {
-                    textStatus.setText("Status : Connection failed");
+                    textStatus.setText(R.string.status_failed);
                 }
             }
             public void onDeviceConnected(String name, String address) {
                 if (textStatus != null) {
-                    textStatus.setText("Status : Connected to " + name);
+                    textStatus.setText(String.format("%s%s", getString(R.string.status_connected), name));
                     menu.clear();
                     getMenuInflater().inflate(R.menu.menu_disconnection, menu);
                 }
-                Log.e(TAG, String.valueOf(mCount));
-                mTimer = new Timer();
-                mMyTimerTask = new MyTimerTask();
-                mMyTimerTask.registerCallBack(MainActivity.this);
-                mTimer.schedule(mMyTimerTask, 1000, 500);
+                mPeriodScan = new Timer();
+                mPollDeviceTask = new PollDeviceTask();
+                mPollDeviceTask.registerCallBack(MainActivity.this);
+                mPeriodScan.schedule(mPollDeviceTask, 1000, 500);
             }
         });
 
@@ -257,7 +217,6 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        Intent intent;
         switch (id) {
             case R.id.nav_review:
                 break;
@@ -297,9 +256,9 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mTimer != null) {
-            mTimer.cancel();
-            mTimer = null;
+        if (mPeriodScan != null) {
+            mPeriodScan.cancel();
+            mPeriodScan = null;
         }
         bt.disconnect();
         bt.stopService();
@@ -340,10 +299,9 @@ public class MainActivity extends AppCompatActivity
     // Visual text on the screen
     //==============================================================================================
     private void tryDrawing(SurfaceHolder holder) {
-        Log.i(TAG, "Trying to draw...");
         canvas = holder.lockCanvas();
         if (canvas == null) {
-            Log.e(TAG, "Cannot draw onto the canvas as it's null");
+            Log.e("TAG", "Cannot draw onto the canvas as it's null");
         } else {
             drawMyStuff(canvas);
             holder.unlockCanvasAndPost(canvas);
@@ -361,22 +319,26 @@ public class MainActivity extends AppCompatActivity
             canvas.drawText(thirdRow, 0, 160, fontPaintThree);
             canvas.drawText(fourthRow, 0, 240, fontPaintFour);
         } else {
-            canvas.drawText(text, 0, 0, fontPaintOne);
+            canvas.drawText(START_TEXT, 0, 0, fontPaintOne);
+            canvas.drawText(START_TEXT2, 0, 80, fontPaintTwo);
+            canvas.drawText(START_TEXT3, 0, 160, fontPaintThree);
+            canvas.drawText(START_TEXT4, 0, 240, fontPaintFour);
         }
     }
     //==============================================================================================
 
 
     private void bytesInOrder(byte[] data) {
-        // change the encoding
+        // Change the encoding
         ByteBuffer msgBuf = ByteBuffer.wrap(data);
-        CharBuffer msgCharBuf = Charset.forName(CP866).decode(msgBuf);
+        CharBuffer msgCharBuf = Charset.forName(ENCODING_CP866).decode(msgBuf);
         // Drop slaveId, function, number of bytes and CRC in the end
-        char[] msgChArray = new char[msgCharBuf.length()-5];
+        char[] msgChArray = new char[msgCharBuf.length() - 5]; // allow only data
         for (int i = 0; i < msgChArray.length; i++) {
-            msgChArray[i] = msgCharBuf.charAt(i + 3);
-            //Log.e(TAG, String.valueOf(msgChArray[i]));
+            msgChArray[i] = msgCharBuf.charAt(i + 3); // headless
         }
+
+        // Swap bytes, because little/big endian
         for (int i = 1; i < msgChArray.length; i+=2) {
             if(i < msgChArray.length){
                 char temp = msgChArray[i];
@@ -384,59 +346,52 @@ public class MainActivity extends AppCompatActivity
                 msgChArray[i - 1] = temp;
             }
         }
-        for (int i = 0; i < msgChArray.length; i++){
-            if(msgChArray[i] == 'н'){
-                msgChArray[i] = 'H';
+
+        // Other cycle because appears empty character ???
+        for (int symbol = 0; symbol < msgChArray.length; symbol++){
+            if(msgChArray[symbol] == 'н'){
+                // Russian н to Enghish H
+                msgChArray[symbol] = 'H';
             }
         }
-//        for (char ch : msgChArray){
-//            Log.e(TAG, String.valueOf(ch));
-//        }
+
         int count = 0;
-        for (int i = 0; i < ROWS; i++) {
-            char[] titleScreen = new char[COLUMNS];
-            for (int j = 0; j < COLUMNS; j++) {
+        for (int row = 0; row < SCREEN_ROWS; row++) {
+            char[] titleScreen = new char[SCREEN_COLUMNS];
+            for (int column = 0; column < SCREEN_COLUMNS; column++) {
                 if(count < msgChArray.length){
-                    titleScreen[j] = msgChArray[count++];
+                    titleScreen[column] = msgChArray[count++];
                 }
             }
             String tempStr = String.valueOf(titleScreen);
-            switch (i){
+            switch (row){
                 case 0:
                     try {
-                        firstRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                        firstRow = new String(tempStr.getBytes(ENCODING_CP866), ENCODING_1251);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                    tempStr = null;
-                    titleScreen = null;
                     break;
                 case 1:
                     try {
-                        secondRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                        secondRow = new String(tempStr.getBytes(ENCODING_CP866), ENCODING_1251);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                    tempStr = null;
-                    titleScreen = null;
                     break;
                 case 2:
                     try {
-                        thirdRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                        thirdRow = new String(tempStr.getBytes(ENCODING_CP866), ENCODING_1251);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                    tempStr = null;
-                    titleScreen = null;
                     break;
                 case 3:
                     try {
-                        fourthRow = new String(tempStr.getBytes(CP866), "windows-1251");
+                        fourthRow = new String(tempStr.getBytes(ENCODING_CP866), ENCODING_1251);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                    tempStr = null;
-                    titleScreen = null;
                     break;
                 default:
                     break;
@@ -446,11 +401,9 @@ public class MainActivity extends AppCompatActivity
 
 
     @Override
-    public void callBackReturn() {
-        mBytes = mCreator.createRequest(Modbus.READ_MULTIPLE_REGISTERS);
-        bt.send(mBytes, false);
-        ++mCount;
-        Log.e(TAG, String.valueOf(mCount));
+    public void sendRequest() {
+        mReadyHexRequest = mRequestProducer.createRequest(Modbus.READ_MULTIPLE_REGISTERS);
+        bt.send(mReadyHexRequest, false);
     }
 
     @Override
@@ -466,28 +419,28 @@ public class MainActivity extends AppCompatActivity
                 transaction.commit();
                 break;
             case R.id.btn_escape:
-                mCreator.setPressedKey(KeyboardRTU.ESCAPE);
-                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                mRequestProducer.setPressedKey(KeyboardRTU.ESCAPE);
+                bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
                 break;
             case R.id.btn_enter:
-                mCreator.setPressedKey(KeyboardRTU.ENTER);
-                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                mRequestProducer.setPressedKey(KeyboardRTU.ENTER);
+                bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
                 break;
             case R.id.btn_right:
-                mCreator.setPressedKey(KeyboardRTU.RIGHT);
-                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                mRequestProducer.setPressedKey(KeyboardRTU.RIGHT);
+                bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
                 break;
             case R.id.btn_left:
-                mCreator.setPressedKey(KeyboardRTU.LEFT);
-                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                mRequestProducer.setPressedKey(KeyboardRTU.LEFT);
+                bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
                 break;
             case R.id.btn_up:
-                mCreator.setPressedKey(KeyboardRTU.UP);
-                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                mRequestProducer.setPressedKey(KeyboardRTU.UP);
+                bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
                 break;
             case R.id.btn_down:
-                mCreator.setPressedKey(KeyboardRTU.DOWN);
-                bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+                mRequestProducer.setPressedKey(KeyboardRTU.DOWN);
+                bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
                 break;
         }
     }
@@ -496,37 +449,52 @@ public class MainActivity extends AppCompatActivity
     public void numPadReturn(int id) {
         switch (id) {
             case R.id.btn_one:
-                mCreator.setPressedKey(KeyboardRTU.ONE);
+                mRequestProducer.setPressedKey(KeyboardRTU.ONE);
                 break;
             case R.id.btn_two:
-                mCreator.setPressedKey(KeyboardRTU.TWO);
+                mRequestProducer.setPressedKey(KeyboardRTU.TWO);
                 break;
             case R.id.btn_three:
-                mCreator.setPressedKey(KeyboardRTU.THREE);
+                mRequestProducer.setPressedKey(KeyboardRTU.THREE);
                 break;
             case R.id.btn_four:
-                mCreator.setPressedKey(KeyboardRTU.FOUR);
+                mRequestProducer.setPressedKey(KeyboardRTU.FOUR);
                 break;
             case R.id.btn_five:
-                mCreator.setPressedKey(KeyboardRTU.FIVE);
+                mRequestProducer.setPressedKey(KeyboardRTU.FIVE);
                 break;
             case R.id.btn_six:
-                mCreator.setPressedKey(KeyboardRTU.SIX);
+                mRequestProducer.setPressedKey(KeyboardRTU.SIX);
                 break;
             case R.id.btn_seven:
-                mCreator.setPressedKey(KeyboardRTU.SEVEN);
+                mRequestProducer.setPressedKey(KeyboardRTU.SEVEN);
                 break;
             case R.id.btn_eight:
-                mCreator.setPressedKey(KeyboardRTU.EIGHT);
+                mRequestProducer.setPressedKey(KeyboardRTU.EIGHT);
                 break;
             case R.id.btn_nine:
-                mCreator.setPressedKey(KeyboardRTU.NINE);
+                mRequestProducer.setPressedKey(KeyboardRTU.NINE);
                 break;
             case R.id.btn_zero:
-                mCreator.setPressedKey(KeyboardRTU.ZERO);
+                mRequestProducer.setPressedKey(KeyboardRTU.ZERO);
                 break;
         }
-        bt.send(mCreator.createRequest(Modbus.WRITE_FILE_RECORD), false);
+        bt.send(mRequestProducer.createRequest(Modbus.WRITE_FILE_RECORD), false);
+    }
+
+    private Paint createPaint() {
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTypeface(Typeface.createFromAsset(
+                getAssets(), FONT_LUCIDA_DOS));
+        paint.setTextSize(fontSize);
+        //fontPaint.setStyle(Paint.Style.STROKE);
+        // ширина текста
+        textWidth = paint.measureText(START_TEXT);
+        // посимвольная ширина
+        charWidth = new float[START_TEXT.length()];
+        paint.getTextWidths(START_TEXT, charWidth);
+        paint.setColor(Color.BLACK);
+        return paint;
     }
 }
 

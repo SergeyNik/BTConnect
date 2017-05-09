@@ -10,7 +10,7 @@ import com.serotonin.util.queue.ByteQueue;
  * Created by Sergey on 08.03.2017.
  */
 
-public class RequestCreator {
+public class RequestProducer {
     private static final int FILE = 16;
     private static final int ADDRES_WRITE = 30576;
     private static final int ADDRES_READ = 1956;

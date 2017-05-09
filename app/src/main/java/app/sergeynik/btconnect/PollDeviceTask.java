@@ -6,10 +6,10 @@ import java.util.TimerTask;
  * Created by Sergey on 08.03.2017.
  */
 
-class MyTimerTask extends TimerTask {
+class PollDeviceTask extends TimerTask {
 
     public interface MyCallback{
-        void callBackReturn();
+        void sendRequest();
     }
 
     MyCallback myCallback;
@@ -19,6 +19,6 @@ class MyTimerTask extends TimerTask {
     }
     @Override
     public void run() {
-        myCallback.callBackReturn();
+        myCallback.sendRequest();
     }
 }
